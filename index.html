@@ -478,6 +478,10 @@ function gunPaneli(tarih){
     </div>
     ${kapali?'<p class="warn" style="margin-bottom:12px">Bu gün kapalı olarak ayarlı.</p>':""}
     ${gun.length===0 ? `<p class="note">Bu gün için randevu yok.</p>` : gun.map(randevuSatir).join("")}
+    <button class="btn ghost sm" style="width:100%;margin-top:10px" data-act="slot-temizle" data-tarih="${tarih}">
+      Dolu görünen boş saatleri temizle</button>
+    <p class="note" style="margin-top:6px">Silinmiş randevulardan kalan saat kayıtlarını siler.
+    Gerçek randevusu olan saatlere dokunmaz.</p>
     ${manuelEkle(tarih)}`;
 }
 
@@ -834,6 +838,7 @@ document.addEventListener("click", async (ev) => {
     await setDoc(doc(db,"days",key), yeni);
     S.gunler[key]=yeni; ciz(); return;
   }
+  if (act==="slot-temizle"){ await slotTemizle(t.dataset.tarih); return; }
   if (act==="ekle-ac"){ B.ekleAcik=true; ciz(); return; }
   if (act==="ekle-kapat"){ B.ekleAcik=false; ciz(); return; }
   if (act==="ekle-kaydet"){ await manuelKaydet(t.dataset.tarih); return; }
@@ -963,6 +968,36 @@ async function manuelKaydet(tarih){
   B.ekleAcik=false; ciz();
 }
 
+/* Öksüz slot temizliği: randevusu kalmamış saat kayıtlarını siler.
+   Eski sürümde randevu silinince slotlar kalıyordu ve o saatler kalıcı dolu görünüyordu. */
+async function slotTemizle(tarih){
+  try {
+    const snap = await getDocs(query(collection(db,"slots"), where("date","==",tarih)));
+    if (snap.empty) return alert("Bu güne ait saat kaydı yok.");
+
+    // Gerçekten randevusu olan saatler
+    const gecerli = new Set();
+    S.randevular.filter(r=>r.date===tarih && aktif(r)).forEach(r=>{
+      for(let k=toMin(r.time); k<toMin(r.time)+r.minutes; k+=15) gecerli.add(fromMin(k));
+    });
+
+    const oksuz = snap.docs.filter(d => !gecerli.has(d.data().time));
+    if (!oksuz.length) return alert("Temizlenecek kayıt yok. Dolu görünen saatlerin hepsinin gerçek randevusu var.");
+    if (!confirm(oksuz.length + " adet boşta kalmış saat kaydı silinecek. Onaylıyor musunuz?")) return;
+
+    for(let i=0;i<oksuz.length;i+=100){
+      const b=writeBatch(db);
+      oksuz.slice(i,i+100).forEach(d=>b.delete(doc(db,"slots",d.id)));
+      await b.commit();
+    }
+    alert(oksuz.length + " saat serbest bırakıldı.");
+    ciz();
+  } catch(e){
+    console.error(e);
+    alert("Temizlenemedi: " + (e.code||e.message));
+  }
+}
+
 async function hizmetKaydet(id){
   const al=(f)=>document.querySelector(`[data-hid="${id}"][data-f="${f}"]`)?.value;
   const yeni={ name:(al("name")||"").trim(), minutes:Math.max(5,Number(al("minutes"))||30), price:Math.max(0,Number(al("price"))||0) };
@@ -993,7 +1028,10 @@ async function saatKaydet(){
     const s=S.saatler[g]||{closed:true,open:"09:00",close:"20:00"};
     const o=document.querySelector(`[data-wd="${g}"][data-f="open"]`)?.value||s.open;
     const c=document.querySelector(`[data-wd="${g}"][data-f="close"]`)?.value||s.close;
-    const yeni={closed:!!s.closed, open:String(o), close:String(c)};
+    // 15 dakikalık ızgaraya oturt: slot kimlikleri buna göre üretiliyor
+    const yeni={ closed:!!s.closed,
+                 open:  fromMin(Math.round(toMin(o)/15)*15),
+                 close: fromMin(Math.round(toMin(c)/15)*15) };
     S.saatler[g]=yeni;
     batch.set(doc(db,"workingHours",String(g)), yeni);
   });
@@ -1066,6 +1104,11 @@ else {
     S.admin=true; bosSayaciKur();
     randevulariDinle();
     S.ekran="berber"; ciz();
+    // Takvim tükenmeden kendiliğinden uzasın
+    try {
+      const ileri = Object.keys(S.gunler).filter(k=>k>=bugun()).length;
+      if (ileri < 60) { await gunleriUret(); ciz(); }
+    } catch(e){ console.warn("Takvim uzatılamadı", e); }
   });
 }
 </script>
