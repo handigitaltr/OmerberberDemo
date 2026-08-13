@@ -167,6 +167,12 @@ const tl = (n) => new Intl.NumberFormat("tr-TR").format(Math.round(n||0)) + " �
 const saatMetni = (dk) => { const h=Math.floor(dk/60), m=dk%60; return m ? `${h} sa ${m} dk` : `${h} sa`; };
 const bugun = () => ymd(new Date());
 
+/* Firestore'a boolean yerine string girilmiş olabilir ("false" gibi).
+   Ham JavaScript'te "false" dolu bir metindir ve doğru sayılır; bu yüzden
+   kapalı/açık kararını buradan geçiriyoruz. */
+const bl = (v) => v === true || v === "true";
+const sy = (v, varsayilan=0) => { const n = Number(v); return Number.isFinite(n) ? n : varsayilan; };
+
 /* XSS koruması: müşteri adı/telefonu ekrana basılmadan önce kaçırılır.
    Bu olmazsa isim alanına script yazan biri berberin panelinde kod çalıştırabilir. */
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
@@ -224,9 +230,20 @@ async function acikVeriYukle(){
     getDocs(collection(db,"shop")),
     getDocs(query(collection(db,"days"), where("date",">=",bg), orderBy("date"), limit(120)))
   ]);
-  S.hizmetler = hs.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>(a.order||0)-(b.order||0));
-  S.saatler = {}; sh.docs.forEach(d => S.saatler[Number(d.id)] = d.data());
-  S.gunler = {}; gn.docs.forEach(d => S.gunler[d.id] = d.data());
+  S.hizmetler = hs.docs.map(d=>{
+    const v = d.data();
+    return { id:d.id, name:String(v.name||""), minutes:sy(v.minutes,30), price:sy(v.price,0),
+             order:sy(v.order,0), tipHatasi: typeof v.minutes !== "number" || typeof v.price !== "number" };
+  }).sort((a,b)=>a.order-b.order);
+  S.saatler = {}; sh.docs.forEach(d => {
+    const v = d.data();
+    S.saatler[Number(d.id)] = { closed:bl(v.closed), open:String(v.open||"09:00"), close:String(v.close||"20:00"),
+                                tipHatasi: typeof v.closed !== "boolean" };
+  });
+  S.gunler = {}; gn.docs.forEach(d => {
+    const v = d.data();
+    S.gunler[d.id] = { ...v, closed:bl(v.closed), open:String(v.open||"09:00"), close:String(v.close||"20:00") };
+  });
   const ayar = dk.docs.find(d=>d.id==="settings");
   if (ayar) S.dukkan = ayar.data().name || "Berber";
 }
@@ -244,7 +261,7 @@ async function gunleriUret(adet=120){
       const mevcut = S.gunler[key];
       // Elle kapatılmış özel günü şablon ezmesin
       if (mevcut?.manuel) continue;
-      const yeni = { date:key, closed:!!s.closed, open:s.open, close:s.close, manuel:false };
+      const yeni = { date:key, closed:bl(s.closed), open:String(s.open), close:String(s.close), manuel:false };
       S.gunler[key] = yeni;
       batch.set(doc(db,"days",key), yeni);
     }
@@ -624,7 +641,15 @@ function musteriPaneli(){
 }
 
 function ayarPaneli(){
+  const tipSorunu = S.hizmetler.some(h=>h.tipHatasi) || Object.values(S.saatler).some(s=>s.tipHatasi);
+  const acikGun = Object.values(S.gunler).filter(g=>!g.closed).length;
   return `
+    ${tipSorunu ? `<p class="warn" style="margin-bottom:12px">Firestore'da bazı alanlar yanlış tiple girilmiş
+      (sayı yerine metin, ya da boolean yerine metin). Aşağıdaki her hizmet için <b>Kaydet</b>'e ve
+      çalışma saatlerinde <b>Saatleri kaydet</b>'e basınca düzelir.</p>` : ""}
+    ${acikGun===0 ? `<p class="warn" style="margin-bottom:12px">Takvimde açık gün yok. Çalışma saatlerini
+      kontrol edip <b>Saatleri kaydet</b>'e basın.</p>` : `<p class="note" style="margin-bottom:12px">Takvimde
+      ${acikGun} açık gün tanımlı.</p>`}
     <h3 style="font-size:14px;margin-bottom:10px">Hizmetler, süre ve ücret</h3>
     ${S.hizmetler.map(h=>`
       <div class="card" style="margin-bottom:9px">
@@ -968,7 +993,7 @@ async function saatKaydet(){
     const s=S.saatler[g]||{closed:true,open:"09:00",close:"20:00"};
     const o=document.querySelector(`[data-wd="${g}"][data-f="open"]`)?.value||s.open;
     const c=document.querySelector(`[data-wd="${g}"][data-f="close"]`)?.value||s.close;
-    const yeni={closed:!!s.closed, open:o, close:c};
+    const yeni={closed:bl(s.closed), open:String(o), close:String(c)};
     S.saatler[g]=yeni;
     batch.set(doc(db,"workingHours",String(g)), yeni);
   });
