@@ -1,1065 +1,616 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#16120E">
-<title>Berber Randevu</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --ink:#16120E; --panel:#211B15; --panel2:#2B241C; --line:#3A3128;
-  --brass:#C79A3C; --brassSoft:#E8CE92; --bone:#F3EDE2; --muted:#9C9084;
-  --red:#C0483A; --green:#79A05F;
-}
-body{background:var(--ink);color:var(--bone);font-family:'Barlow',system-ui,sans-serif;min-height:100vh;padding-bottom:48px;-webkit-font-smoothing:antialiased}
-h1,h2,h3,.disp{font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
-.wrap{max-width:720px;margin:0 auto;padding:0 16px}
-.head{border-bottom:1px solid var(--line);padding:22px 0 18px;margin-bottom:22px}
-.kicker{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.28em;color:var(--brass);text-transform:uppercase}
-.head h1{font-size:30px;line-height:1.1;margin-top:6px}
-.head p{color:var(--muted);font-size:14px;margin-top:8px}
-.step{margin-bottom:26px}
-.steplbl{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.stepno{font-family:'Oswald',sans-serif;font-size:11px;color:var(--ink);background:var(--brass);width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
-.steplbl .t{font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:.14em;text-transform:uppercase}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
-.svc{width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 14px;margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:.15s;color:inherit;font:inherit}
-.svc:hover{border-color:var(--brass)}
-.svc.on{border-color:var(--brass);background:var(--panel2);box-shadow:inset 3px 0 0 var(--brass)}
-.svc .nm{font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:.03em}
-.svc .meta{font-size:12px;color:var(--muted);margin-top:2px}
-.svc .pr{font-family:'Oswald',sans-serif;color:var(--brassSoft);font-size:16px}
-.days{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
-.day{flex:0 0 auto;width:60px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 0;text-align:center;cursor:pointer;color:inherit;font:inherit;transition:.15s}
-.day .d1{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
-.day .d2{font-family:'Oswald',sans-serif;font-size:20px;margin:2px 0}
-.day .d3{font-size:10px;color:var(--muted)}
-.day.on{background:var(--brass);border-color:var(--brass);color:var(--ink)}
-.day.on .d1,.day.on .d3{color:rgba(22,18,14,.75)}
-.day.kapali{opacity:.42;cursor:not-allowed}
-.day.kapali .d3{color:var(--red)}
-.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px}
-.slot{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 4px;font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:.04em;cursor:pointer;color:var(--bone);transition:.15s}
-.slot:hover{border-color:var(--brass)}
-.slot.on{background:var(--brass);border-color:var(--brass);color:var(--ink)}
-.slot.dolu{cursor:not-allowed;color:var(--muted);border-color:#33291F;background-image:repeating-linear-gradient(45deg,rgba(192,72,58,.22) 0 5px,transparent 5px 11px)}
-.slot .x{display:block;font-family:'Barlow',sans-serif;font-size:9px;letter-spacing:.16em;color:var(--red);text-transform:uppercase}
-.inp{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;color:var(--bone);font:inherit;font-size:15px;margin-bottom:9px}
-.inp:focus{outline:2px solid var(--brass);outline-offset:1px;border-color:var(--brass)}
-.lbl{display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
-.btn{width:100%;background:var(--brass);color:var(--ink);border:none;border-radius:8px;padding:14px;font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:.15s}
-.btn:hover{background:var(--brassSoft)}
-.btn:disabled{background:#453B2E;color:#8A8074;cursor:not-allowed}
-.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--bone)}
-.btn.ghost:hover{border-color:var(--brass);background:transparent}
-.btn.dngr{background:transparent;border:1px solid var(--red);color:var(--red)}
-.btn.dngr:hover{background:var(--red);color:var(--bone)}
-.btn.sm{padding:9px 12px;font-size:12px;width:auto}
-.row{display:flex;gap:8px}
-.note{font-size:13px;color:var(--muted);line-height:1.5}
-.warn{border-left:2px solid var(--red);padding-left:10px;color:var(--muted);font-size:13px}
-.tabs{display:flex;gap:6px;overflow-x:auto;border-bottom:1px solid var(--line);margin-bottom:18px}
-.tab{flex:0 0 auto;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:.1em;text-transform:uppercase;padding:10px 10px 9px;cursor:pointer}
-.tab.on{color:var(--brass);border-bottom-color:var(--brass)}
-.ap{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--muted);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;width:100%;text-align:left;color:inherit;font:inherit}
-.ap.pending{border-left-color:var(--brass)}
-.ap.confirmed{border-left-color:var(--green)}
-.ap.cancelled{border-left-color:var(--red);opacity:.5}
-.ap .tm{font-family:'Oswald',sans-serif;font-size:19px;line-height:1;min-width:52px}
-.ap .tm small{display:block;font-size:10px;color:var(--muted);font-family:'Barlow';letter-spacing:.06em;margin-top:3px}
-.ap .nm{font-weight:600;font-size:15px}
-.ap .sb{font-size:13px;color:var(--muted)}
-.chip{display:inline-block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:2px 7px;border-radius:20px;border:1px solid var(--line);color:var(--muted);margin-top:5px}
-.chip.b{color:var(--brass);border-color:var(--brass)}
-.chip.o{color:var(--green);border-color:var(--green)}
-.chip.i{color:var(--red);border-color:var(--red)}
-.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
-.stat .k{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
-.stat .v{font-family:'Oswald',sans-serif;font-size:24px;color:var(--brassSoft);margin-top:4px;line-height:1}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
-.tr{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
-.tr:last-child{border-bottom:none}
-.tr b{font-family:'Oswald',sans-serif;color:var(--brassSoft);font-weight:500;text-align:right;white-space:nowrap}
-.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.cal .hd{text-align:center;font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding:4px 0}
-.cd{aspect-ratio:1;background:var(--panel);border:1px solid var(--line);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:inherit;font:inherit}
-.cd .n{font-family:'Oswald',sans-serif;font-size:15px}
-.cd .dot{width:4px;height:4px;border-radius:50%;background:var(--brass);margin-top:3px}
-.cd.on{background:var(--brass);border-color:var(--brass);color:var(--ink)}
-.cd.on .dot{background:var(--ink)}
-.cd.bos{background:transparent;border-color:transparent;cursor:default}
-.cd.kapali{opacity:.35}
-.modal{position:fixed;inset:0;background:rgba(10,8,6,.82);display:flex;align-items:flex-end;justify-content:center;z-index:50}
-.sheet{background:var(--panel);border:1px solid var(--line);border-radius:14px 14px 0 0;padding:20px 16px 26px;width:100%;max-width:720px;max-height:88vh;overflow-y:auto}
-.footlink{text-align:center;margin-top:38px;padding-top:18px;border-top:1px solid var(--line)}
-.footlink button{background:none;border:none;color:#6C6156;font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-family:'Oswald',sans-serif;cursor:pointer;padding:6px}
-.footlink button:hover{color:var(--brass)}
-.ozet{border:1px solid var(--brass);border-radius:12px;padding:20px;background:var(--panel2)}
-.ozet .ok{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.22em;color:var(--brass);text-transform:uppercase}
-.ozet h2{font-size:24px;margin:8px 0 16px}
-.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--brass);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
-@keyframes sp{to{transform:rotate(360deg)}}
-@media(max-width:420px){.grid3{grid-template-columns:1fr 1fr}}
-@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-</style>
-</head>
-<body>
-<div id="app"><div class="wrap" style="padding-top:60px"><p class="note"><span class="spin"></span>Yükleniyor…</p></div></div>
-
-<script type="module">
-/* =========================================================
-   1) YAPILANDIRMA — Firebase konsolundan kendi değerlerini yapıştır
-   ========================================================= */
-const FB = {
-  apiKey:            "AIzaSyB1cx17pHui7vXDYRz_4rEzycBXW3pVZW0",
-  authDomain:        "omer-berber.firebaseapp.com",
-  projectId:         "omer-berber",
-  storageBucket:     "omer-berber.firebasestorage.app",
-  messagingSenderId: "935274412163",
-  appId:             "1:935274412163:web:e393326ed9e414043503b6"
-};
-const RECAPTCHA_SITE_KEY = "6Le5DIQtAAAAAOtBTnmJfEqcORAMksmTMp_HSMvc";
-
-/* Bot koruması. Üç seçenek:
-   "enterprise" → reCAPTCHA Enterprise anahtarı (Google Cloud faturalandırması ister)
-   "v3"         → klasik reCAPTCHA v3 anahtarı (ücretsiz, fatura hesabı gerekmez)
-   "kapali"     → koruma yok. Site yine çalışır, veri gizliliği bozulmaz;
-                  sadece sahte randevu göndermek kolaylaşır. */
-const RECAPTCHA_TIP = "v3";
-
-/* Berber sadece şifre yazar; e-posta burada sabit durur ve gizli bir bilgi değildir.
-   Tek başına hiçbir işe yaramaz — asıl sır olan şifre Firebase'de saklanır, bu dosyada DEĞİL.
-   Kendi gerçek e-postanı yaz: şifre unutulursa sıfırlama maili oraya gider. */
-const BERBER_MAIL = "handigitaltr@gmail.com";
-
-/* apiKey herkese açıktır, gizli bir bilgi değildir. Güvenliği sağlayan şey
-   Firestore kuralları, App Check ve Cloud Functions doğrulamalarıdır. */
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { initializeAppCheck, ReCaptchaEnterpriseProvider, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
-         query, where, orderBy, limit, serverTimestamp, writeBatch, onSnapshot }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
-         updatePassword, EmailAuthProvider, reauthenticateWithCredential }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-/* =========================================================
-   2) YARDIMCILAR
-   ========================================================= */
-const GUNLER = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
-const GUN_KISA = ["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"];
-const AYLAR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
-
-const $ = (s) => document.querySelector(s);
-const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-const parseYmd = (s) => { const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); };
-const toMin = (t) => { const [h,m]=t.split(":").map(Number); return h*60+m; };
-const fromMin = (m) => `${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`;
-const trTarih = (s) => { const d=parseYmd(s); return `${d.getDate()} ${AYLAR[d.getMonth()]} ${d.getFullYear()}, ${GUNLER[d.getDay()]}`; };
-const trKisa = (s) => { const d=parseYmd(s); return `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()}`; };
-const tl = (n) => new Intl.NumberFormat("tr-TR").format(Math.round(n||0)) + " ₺";
-const saatMetni = (dk) => { const h=Math.floor(dk/60), m=dk%60; return m ? `${h} sa ${m} dk` : `${h} sa`; };
-const bugun = () => ymd(new Date());
-
-/* Firestore'a boolean yerine string girilmiş olabilir ("false" gibi).
-   Ham JavaScript'te "false" dolu bir metindir ve doğru sayılır; bu yüzden
-   kapalı/açık kararını buradan geçiriyoruz. */
-const bl = (v) => v === true || v === "true";
-const sy = (v, varsayilan=0) => { const n = Number(v); return Number.isFinite(n) ? n : varsayilan; };
-
-/* XSS koruması: müşteri adı/telefonu ekrana basılmadan önce kaçırılır.
-   Bu olmazsa isim alanına script yazan biri berberin panelinde kod çalıştırabilir. */
-const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
-  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
-
-function gecenGun(t){
-  const b=new Date(); b.setHours(0,0,0,0);
-  const f=Math.round((b-parseYmd(t))/86400000);
-  if(f===0) return "bugün"; if(f===1) return "dün";
-  if(f<0) return `${-f} gün sonra`;
-  if(f<30) return `${f} gün önce`;
-  if(f<365) return `${Math.round(f/30)} ay önce`;
-  return `${Math.floor(f/365)} yıl önce`;
-}
-
-/* =========================================================
-   3) FIREBASE
-   ========================================================= */
-const kurulu = !FB.apiKey.includes("BURAYA");
-let db, auth;
-
-if (kurulu) {
-  const app = initializeApp(FB);
-  if (RECAPTCHA_TIP !== "kapali" && !RECAPTCHA_SITE_KEY.includes("BURAYA")) {
-    try {
-      initializeAppCheck(app, {
-        provider: RECAPTCHA_TIP === "v3"
-          ? new ReCaptchaV3Provider(RECAPTCHA_SITE_KEY)
-          : new ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY),
-        isTokenAutoRefreshEnabled: true
-      });
-    } catch(e){ console.error("App Check başlatılamadı:", e); }
-  }
-  db   = getFirestore(app);
-  auth = getAuth(app);
-}
-
-
-/* =========================================================
-   4) DURUM
-   ========================================================= */
-const S = { ekran:"musteri", hizmetler:[], saatler:{}, gunler:{}, dukkan:"Berber", randevular:[], admin:false, hazir:false };
-const M = { hizmetId:null, tarih:null, saat:null, slotlar:[], slotYukleniyor:false, ad:"", soyad:"", tel:"", kvkk:false, ozet:null, gonderiliyor:false, hata:"" };
-const B = { sekme:"bugun", secili:bugun(), detay:null, ay:new Date(new Date().getFullYear(), new Date().getMonth(), 1), ekleAcik:false, mGorunum:"kisi", ara:"", acikKisi:null, bas:"", bit:"", sifirlaMod:null, sifirlaOnay:"" };
-{ const b=new Date(); B.bas=ymd(new Date(b.getFullYear(),b.getMonth(),1)); B.bit=ymd(new Date(b.getFullYear(),b.getMonth()+1,0)); }
-
-/* =========================================================
-   5) VERİ OKUMA
-   ========================================================= */
-async function acikVeriYukle(){
-  const bg = bugun();
-  const [hs, sh, dk, gn] = await Promise.all([
-    getDocs(query(collection(db,"services"), where("active","==",true))),
-    getDocs(collection(db,"workingHours")),
-    getDocs(collection(db,"shop")),
-    getDocs(query(collection(db,"days"), where("date",">=",bg), orderBy("date"), limit(120)))
-  ]);
-  S.hizmetler = hs.docs.map(d=>{
-    const v = d.data();
-    return { id:d.id, name:String(v.name||""), minutes:sy(v.minutes,30), price:sy(v.price,0),
-             order:sy(v.order,0), tipHatasi: typeof v.minutes !== "number" || typeof v.price !== "number" };
-  }).sort((a,b)=>a.order-b.order);
-  S.saatler = {}; sh.docs.forEach(d => {
-    const v = d.data();
-    S.saatler[Number(d.id)] = { closed:bl(v.closed), open:String(v.open||"09:00"), close:String(v.close||"20:00"),
-                                tipHatasi: typeof v.closed !== "boolean" };
-  });
-  S.gunler = {}; gn.docs.forEach(d => {
-    const v = d.data();
-    S.gunler[d.id] = { ...v, closed:bl(v.closed), open:String(v.open||"09:00"), close:String(v.close||"20:00") };
-  });
-  const ayar = dk.docs.find(d=>d.id==="settings");
-  if (ayar) S.dukkan = ayar.data().name || "Berber";
-}
-
-/* Gün takvimini haftalık şablondan üretir. Kurallar tarih hesabı yapamadığı için
-   her tarih ayrı bir doküman olarak duruyor; kapalı gün açmak da bu sayede mümkün. */
-async function gunleriUret(adet=120){
-  const b = new Date(); b.setHours(0,0,0,0);
-  for (let i=0; i<adet; i+=200){
-    const batch = writeBatch(db);
-    for (let j=i; j<Math.min(i+200, adet); j++){
-      const d = new Date(b); d.setDate(b.getDate()+j);
-      const key = ymd(d);
-      const s = S.saatler[d.getDay()] || {closed:true, open:"09:00", close:"20:00"};
-      const mevcut = S.gunler[key];
-      // Elle kapatılmış özel günü şablon ezmesin
-      if (mevcut?.manuel) continue;
-      const yeni = { date:key, closed:bl(s.closed), open:String(s.open), close:String(s.close), manuel:false };
-      S.gunler[key] = yeni;
-      batch.set(doc(db,"days",key), yeni);
-    }
-    await batch.commit();
-  }
-}
-
-/* Canlı dinleme: berber panel açıkken yeni randevu gelirse ekran kendiliğinden yenilenir.
-   Tek seferlik okuma yapsaydık berber, panel açıkken düşen randevuyu göremezdi. */
-let randevuAbonelik = null;
-function randevulariDinle(){
-  const yilOnce = new Date(); yilOnce.setFullYear(yilOnce.getFullYear()-1);
-  const q1 = query(collection(db,"appointments"), where("date",">=", ymd(yilOnce)), orderBy("date"));
-  if (randevuAbonelik) randevuAbonelik();
-  randevuAbonelik = onSnapshot(q1, (snap) => {
-    S.randevular = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    // Form doldurulurken ekranı sıfırlamamak için sadece liste sekmelerinde yeniden çiz
-    if (S.ekran==="berber" && ["bugun","takvim","musteriler"].includes(B.sekme)) ciz();
-  }, (e) => console.error(e));
-}
-
-/* =========================================================
-   6) ÇİZİM
-   ========================================================= */
-function ciz(){
-  if (!kurulu) { $("#app").innerHTML = kurulumEkrani(); return; }
-  if (!S.hazir) return;
-  let html = "";
-  if (S.ekran === "musteri") html = musteriEkrani();
-  else if (S.ekran === "giris") html = girisEkrani();
-  else html = berberEkrani();
-  $("#app").innerHTML = html;
-}
-
-function kurulumEkrani(){
-  return `<div class="wrap" style="padding-top:50px">
-    <div class="kicker">Kurulum gerekli</div>
-    <h1 style="font-size:24px;margin:8px 0 14px">Firebase bağlanmamış</h1>
-    <p class="note">index.html dosyasının başındaki <b>FB</b> nesnesine Firebase konsolundaki
-    web uygulaması ayarlarını, <b>RECAPTCHA_SITE_KEY</b> alanına da App Check anahtarını yapıştırın.
-    Kurulum adımları firebase-kurulum.md dosyasında.</p>
-  </div>`;
-}
-
-/* ---------- MÜŞTERİ ---------- */
-function musteriEkrani(){
-  if (M.ozet) return ozetEkrani();
-  const h = S.hizmetler.find(x=>x.id===M.hizmetId);
-  const gunler = Array.from({length:14},(_,i)=>{
-    const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+i);
-    const g=d.getDay();
-    return {key:ymd(d), d, g, kapali: S.gunler[ymd(d)]?.closed !== false};
-  });
-
-  return `<div class="wrap">
-    <header class="head">
-      <div class="kicker">Randevu · Tek koltuk</div>
-      <h1>${esc(S.dukkan)}</h1>
-      <p>Hizmeti ve saati seçin, adınızı bırakın. Onay berberden gelir.</p>
-    </header>
-
-    <section class="step">
-      <div class="steplbl"><span class="stepno">1</span><span class="t">Hizmet</span></div>
-      ${S.hizmetler.length===0 ? `<p class="note">Şu an tanımlı hizmet yok.</p>` :
-        S.hizmetler.map(x=>`
-        <button class="svc ${M.hizmetId===x.id?"on":""}" data-act="hizmet" data-id="${x.id}">
-          <span><span class="nm">${esc(x.name)}</span><span class="meta">${x.minutes} dakika</span></span>
-          <span class="pr">${tl(x.price)}</span>
-        </button>`).join("")}
-    </section>
-
-    ${!h ? "" : `
-    <section class="step">
-      <div class="steplbl"><span class="stepno">2</span><span class="t">Gün</span></div>
-      <div class="days">
-        ${gunler.map(g=>`
-          <button class="day ${M.tarih===g.key?"on":""} ${g.kapali?"kapali":""}" data-act="gun" data-key="${g.key}" ${g.kapali?"disabled":""}>
-            <div class="d1">${GUN_KISA[g.g]}</div>
-            <div class="d2">${g.d.getDate()}</div>
-            <div class="d3">${g.kapali?"Kapalı":AYLAR[g.d.getMonth()].slice(0,3)}</div>
-          </button>`).join("")}
-      </div>
-      <p class="warn" style="margin-top:12px">Kapalı günlerde randevu alınamaz.</p>
-    </section>`}
-
-    ${!(h && M.tarih) ? "" : `
-    <section class="step">
-      <div class="steplbl"><span class="stepno">3</span><span class="t">Saat</span></div>
-      ${M.slotYukleniyor ? `<p class="note"><span class="spin"></span>Saatler getiriliyor…</p>` :
-        M.hata ? `<p class="warn">${esc(M.hata)}</p>` :
-        M.slotlar.length===0 ? `<p class="note">Bu gün için uygun saat yok.</p>` :
-        M.slotlar.every(s=>!s.free) ? `<p class="note">Bu günün tamamı dolu. Başka bir gün seçin.</p>` :
-        `<div class="slots">${M.slotlar.map(s=>`
-          <button class="slot ${M.saat===s.time?"on":""} ${s.free?"":"dolu"}" data-act="saat" data-t="${s.time}" ${s.free?"":"disabled"}>
-            ${s.time}${s.free?"":'<span class="x">Dolu</span>'}
-          </button>`).join("")}</div>`}
-    </section>`}
-
-    ${!(h && M.tarih && M.saat) ? "" : `
-    <section class="step">
-      <div class="steplbl"><span class="stepno">4</span><span class="t">Bilgileriniz</span></div>
-      <div class="row">
-        <div style="flex:1"><label class="lbl" for="i-ad">Ad</label>
-          <input id="i-ad" class="inp" value="${esc(M.ad)}" placeholder="Adınız" autocomplete="given-name"></div>
-        <div style="flex:1"><label class="lbl" for="i-soyad">Soyad</label>
-          <input id="i-soyad" class="inp" value="${esc(M.soyad)}" placeholder="Soyadınız" autocomplete="family-name"></div>
-      </div>
-      <label class="lbl" for="i-tel">Telefon</label>
-      <input id="i-tel" class="inp" value="${esc(M.tel)}" inputmode="tel" placeholder="05xx xxx xx xx" autocomplete="tel">
-      <label style="display:flex;gap:9px;align-items:flex-start;margin:4px 0 12px;font-size:13px;color:var(--muted);line-height:1.45">
-        <input type="checkbox" id="i-kvkk" ${M.kvkk?"checked":""} style="margin-top:3px">
-        <span>Adımın ve telefon numaramın randevu takibi için saklanmasını kabul ediyorum.</span>
-      </label>
-      <div class="card" style="margin-bottom:12px">
-        <div class="tr"><span>${esc(h.name)}</span><b>${M.saat} – ${fromMin(toMin(M.saat)+h.minutes)}</b></div>
-        <div class="tr"><span>${trTarih(M.tarih)}</span><b>${tl(h.price)}</b></div>
-      </div>
-      ${M.hata ? `<p class="warn" style="margin-bottom:10px">${esc(M.hata)}</p>` : ""}
-      <button class="btn" id="b-gonder" data-act="gonder" ${M.gonderiliyor?"disabled":""}>
-        ${M.gonderiliyor?'<span class="spin"></span>Gönderiliyor…':"Randevuyu gönder"}
-      </button>
-    </section>`}
-
-    <div class="footlink"><button data-act="giris-ac">Yönetici girişi</button></div>
-  </div>`;
-}
-
-function ozetEkrani(){
-  const o = M.ozet;
-  return `<div class="wrap" style="padding-top:40px"><div class="ozet">
-    <div class="ok">Randevu alındı</div>
-    <h2>${esc(o.name)}</h2>
-    <div class="tr"><span>Hizmet</span><b>${esc(o.serviceName)}</b></div>
-    <div class="tr"><span>Tarih</span><b>${trTarih(o.date)}</b></div>
-    <div class="tr"><span>Saat</span><b>${o.time} – ${fromMin(toMin(o.time)+o.minutes)}</b></div>
-    <div class="tr"><span>Süre</span><b>${o.minutes} dk</b></div>
-    <div class="tr"><span>Ücret</span><b>${tl(o.price)}</b></div>
-    <p class="note" style="margin-top:16px">Randevunuz berberin onayına gönderildi.
-    Ekran görüntüsü alabilirsiniz.</p>
-    <button class="btn" style="margin-top:14px" data-act="ozet-kapat">Kapat</button>
-  </div></div>`;
-}
-
-/* ---------- GİRİŞ ---------- */
-let girisHata = "";
-function girisEkrani(){
-  return `<div class="wrap" style="padding-top:60px;max-width:380px">
-    <div class="kicker">Yönetici</div>
-    <h1 style="font-size:26px;margin:6px 0 18px">Panel girişi</h1>
-    <label class="lbl" for="i-sifre">Şifre</label>
-    <input id="i-sifre" class="inp" type="password" autocomplete="current-password" autofocus>
-    ${girisHata?`<p class="warn" style="margin-bottom:10px">${esc(girisHata)}</p>`:""}
-    <button class="btn" data-act="giris">Giriş yap</button>
-    <button class="btn ghost" style="margin-top:8px" data-act="giris-iptal">Geri dön</button>
-    <p class="note" style="margin-top:14px">Şifre bu sayfada saklanmaz, Firebase sunucusunda doğrulanır.</p>
-  </div>`;
-}
-
-/* ---------- BERBER ---------- */
-const SEKMELER = [["bugun","Bugün"],["takvim","Takvim"],["rapor","Rapor"],["mesai","Mesai"],["musteriler","Müşteriler"],["ayar","Ayarlar"],["sifirla","Sıfırla"]];
-
-function berberEkrani(){
-  let ic = "";
-  if (B.sekme==="bugun") ic = gunPaneli(bugun());
-  else if (B.sekme==="takvim") ic = takvimPaneli();
-  else if (B.sekme==="rapor") ic = raporPaneli();
-  else if (B.sekme==="mesai") ic = mesaiPaneli();
-  else if (B.sekme==="musteriler") ic = musteriPaneli();
-  else if (B.sekme==="ayar") ic = ayarPaneli();
-  else ic = sifirlaPaneli();
-
-  return `<div class="wrap">
-    <header class="head" style="display:flex;justify-content:space-between;align-items:flex-end">
-      <div><div class="kicker">Yönetici paneli</div><h1 style="font-size:24px">${esc(S.dukkan)}</h1></div>
-      <button class="btn ghost sm" data-act="cikis">Çıkış</button>
-    </header>
-    <div class="tabs">${SEKMELER.map(([k,l])=>`<button class="tab ${B.sekme===k?"on":""}" data-act="sekme" data-k="${k}">${l}</button>`).join("")}</div>
-    ${ic}
-    ${B.detay ? detayModal() : ""}
-    ${B.sifirlaMod ? sifirlaModal() : ""}
-  </div>`;
-}
-
-const aktif = (r) => r.status !== "cancelled";
-
-function randevuSatir(r){
-  const cls = r.status==="confirmed"?"confirmed":r.status==="cancelled"?"cancelled":"pending";
-  const chip = r.status==="confirmed"?["o","Onaylı"]:r.status==="cancelled"?["i","İptal"]:["b","Onay bekliyor"];
-  return `<button class="ap ${cls}" data-act="detay" data-id="${r.id}">
-    <div class="tm">${r.time}<small>${r.minutes} dk</small></div>
-    <div style="flex:1">
-      <div class="nm">${esc(r.name)}</div>
-      <div class="sb">${esc(r.serviceName)} · ${tl(r.price)}</div>
-      <span class="chip ${chip[0]}">${chip[1]}</span>
-      ${r.source==="walkin"?'<span class="chip" style="margin-left:5px">Dükkândan</span>':""}
-    </div></button>`;
-}
-
-function gunPaneli(tarih){
-  const gun = S.randevular.filter(r=>r.date===tarih).sort((a,b)=>toMin(a.time)-toMin(b.time));
-  const a = gun.filter(aktif);
-  const kapali = S.gunler[tarih]?.closed;
-  return `
-    <h3 style="font-size:15px;margin-bottom:12px">${trTarih(tarih)}</h3>
-    <div class="grid3" style="margin-bottom:14px">
-      <div class="stat"><div class="k">Randevu</div><div class="v">${a.length}</div></div>
-      <div class="stat"><div class="k">Onaylı ciro</div><div class="v">${tl(a.filter(r=>r.status==="confirmed").reduce((t,r)=>t+r.price,0))}</div></div>
-      <div class="stat"><div class="k">Mesai</div><div class="v">${saatMetni(a.reduce((t,r)=>t+r.minutes,0))}</div></div>
+<div class="stat"><div class="k">Onaylı randevu</div><div class="v">${onayli.length}</div></div>
+      <div class="stat"><div class="k">Günlük ortalama</div><div class="v">${tl(toplam / gunSayisi)}</div></div>
     </div>
-    ${kapali?'<p class="warn" style="margin-bottom:12px">Bu gün kapalı olarak ayarlı.</p>':""}
-    ${gun.length===0 ? `<p class="note">Bu gün için randevu yok.</p>` : gun.map(randevuSatir).join("")}
-    ${manuelEkle(tarih)}`;
-}
+    <div class="grid2" style="margin-bottom:14px">
+      <div class="stat"><div class="k">Onay bekleyen</div><div class="v" style="color:var(--brass)">${bekleyen.length}</div></div>
+      <div class="stat"><div class="k">İptal edilen</div><div class="v" style="color:var(--red)">${k.filter(r=>r.status==="cancelled").length}</div></div>
+    </div>
 
-function manuelEkle(tarih){
-  if (!B.ekleAcik) return `<button class="btn ghost" style="margin-top:14px" data-act="ekle-ac">+ Dükkâna gelen müşteriyi ekle</button>`;
-  return `<div class="card" style="margin-top:14px">
-    <h3 style="font-size:14px;margin-bottom:12px">Randevu ekle · ${trKisa(tarih)}</h3>
-    <label class="lbl">Hizmet</label>
-    <select class="inp" id="e-hizmet">${S.hizmetler.map(h=>`<option value="${h.id}">${esc(h.name)} (${h.minutes} dk)</option>`).join("")}</select>
-    <label class="lbl">Saat (istediğiniz dakikayı yazabilirsiniz)</label>
-    <input class="inp" id="e-saat" type="time" step="60">
-    <label class="lbl">Ad soyad</label>
-    <input class="inp" id="e-ad" placeholder="Müşteri adı">
-    <label class="lbl">Telefon (kişi geçmişi için önerilir)</label>
-    <input class="inp" id="e-tel" inputmode="tel" placeholder="05xx xxx xx xx">
-    <div class="row">
-      <button class="btn" data-act="ekle-kaydet" data-tarih="${tarih}">Kaydet</button>
-      <button class="btn ghost" data-act="ekle-kapat">Vazgeç</button>
+    <div class="card" style="margin-bottom:14px">
+      <h3 style="font-size:14px;margin-bottom:10px">Hizmet Dağılımı</h3>
+      ${Object.keys(dagilim).length === 0 ? `<p class="note">Bu tarih aralığında onaylı hizmet yok.</p>` :
+        Object.entries(dagilim).map(([isim, d]) => `
+          <div class="tr">
+            <span>${esc(isim)} <small style="color:var(--muted)">(${d.adet} adet)</small></span>
+            <b>${tl(d.tutar)}</b>
+          </div>`).join("")}
     </div>
-  </div>`;
-}
 
-function takvimPaneli(){
-  const ay=B.ay, ilk=ay.getDay(), adet=new Date(ay.getFullYear(),ay.getMonth()+1,0).getDate();
-  const hucre=[...Array(ilk).fill(null),...Array.from({length:adet},(_,i)=>i+1)];
-  return `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <button class="btn ghost sm" data-act="ay" data-y="-1">‹</button>
-      <h3 style="font-size:16px">${AYLAR[ay.getMonth()]} ${ay.getFullYear()}</h3>
-      <button class="btn ghost sm" data-act="ay" data-y="1">›</button>
-    </div>
-    <div class="cal" style="margin-bottom:18px">
-      ${GUN_KISA.map(g=>`<div class="hd">${g}</div>`).join("")}
-      ${hucre.map(n=>{
-        if(!n) return `<div class="cd bos"></div>`;
-        const key=ymd(new Date(ay.getFullYear(),ay.getMonth(),n));
-        const say=S.randevular.filter(r=>r.date===key&&aktif(r)).length;
-        const kap=S.gunler[key]?.closed;
-        return `<button class="cd ${B.secili===key?"on":""} ${kap?"kapali":""}" data-act="gun-sec" data-key="${key}">
-          <span class="n">${n}</span>${say?'<span class="dot"></span>':""}</button>`;
-      }).join("")}
-    </div>
-    ${(() => { const g=S.gunler[B.secili];
-      return `<button class="btn ghost sm" style="width:100%;margin-bottom:12px" data-act="gun-kapat" data-key="${B.secili}">
-        ${g?.closed ? "Bu günü aç (şu an kapalı)" : "Bu günü kapat (tatil, izin, bayram)"}</button>`; })()}
-    ${gunPaneli(B.secili)}`;
-}
-
-function aralikSecici(){
-  return `<div class="card" style="margin-bottom:14px">
-    <div class="row" style="margin-bottom:10px">
-      <button class="btn ghost sm" style="flex:1" data-act="preset" data-p="gun">Bugün</button>
-      <button class="btn ghost sm" style="flex:1" data-act="preset" data-p="hafta">Bu hafta</button>
-      <button class="btn ghost sm" style="flex:1" data-act="preset" data-p="ay">Bu ay</button>
-    </div>
-    <div class="row">
-      <div style="flex:1"><label class="lbl">Başlangıç</label><input type="date" class="inp" id="a-bas" value="${B.bas}"></div>
-      <div style="flex:1"><label class="lbl">Bitiş</label><input type="date" class="inp" id="a-bit" value="${B.bit}"></div>
-    </div>
-  </div>`;
-}
-const aralikta = () => S.randevular.filter(r=>r.date>=B.bas && r.date<=B.bit);
-
-function raporPaneli(){
-  const k=aralikta(), onayli=k.filter(r=>r.status==="confirmed"), bekleyen=k.filter(r=>r.status==="pending");
-  const toplam=onayli.reduce((t,r)=>t+r.price,0);
-  const gunSayisi=Math.max(1, Math.round((parseYmd(B.bit)-parseYmd(B.bas))/86400000)+1);
-  const dagilim={}; onayli.forEach(r=>{ const d=dagilim[r.serviceName]??={adet:0,tutar:0}; d.adet++; d.tutar+=r.price; });
-  const gunler={}; onayli.forEach(r=>{ const d=gunler[r.date]??={adet:0,tutar:0}; d.adet++; d.tutar+=r.price; });
-  return `${aralikSecici()}
-    <div class="grid3" style="margin-bottom:10px">
-      <div class="stat"><div class="k">Toplam gelir</div><div class="v">${tl(toplam)}</div></div>
-      <div class="stat"><div class="k">Hizmet</div><div class="v">${onayli.length}</div></div>
-      <div class="stat"><div class="k">Günlük ort.</div><div class="v">${tl(toplam/gunSayisi)}</div></div>
-    </div>
-    ${bekleyen.length?`<p class="warn" style="margin-bottom:14px">${bekleyen.length} randevu onay bekliyor, gelire dahil edilmedi.</p>`:""}
-    <h3 style="font-size:14px;margin:16px 0 8px">Hizmet dağılımı</h3>
-    <div class="card">${Object.keys(dagilim).length===0?'<p class="note">Bu aralıkta onaylı hizmet yok.</p>':
-      Object.entries(dagilim).map(([ad,v])=>`<div class="tr"><span>${esc(ad)} × ${v.adet}</span><b>${tl(v.tutar)}</b></div>`).join("")}</div>
-    <h3 style="font-size:14px;margin:20px 0 8px">Gün gün ciro</h3>
-    <div class="card">${Object.keys(gunler).length===0?'<p class="note">Kayıt yok.</p>':
-      Object.entries(gunler).sort((a,b)=>b[0].localeCompare(a[0])).map(([t,v])=>`<div class="tr"><span>${trKisa(t)} · ${v.adet} hizmet</span><b>${tl(v.tutar)}</b></div>`).join("")}</div>`;
+    <div class="card">
+      <h3 style="font-size:14px;margin-bottom:10px">Günlük Gelir Dökümü</h3>
+      ${Object.keys(gunler).length === 0 ? `<p class="note">Bu tarih aralığında işlem yok.</p>` :
+        Object.entries(gunler).sort(([a],[b])=>b.localeCompare(a)).map(([tarih, d]) => `
+          <div class="tr">
+            <span>${trKisa(tarih)} <small style="color:var(--muted)">(${d.adet} randevu)</small></span>
+            <b>${tl(d.tutar)}</b>
+          </div>`).join("")}
+    </div>`;
 }
 
 function mesaiPaneli(){
-  const k=aralikta().filter(aktif);
-  const gunler={}; k.forEach(r=>{ gunler[r.date]=(gunler[r.date]||0)+r.minutes; });
-  const toplam=k.reduce((t,r)=>t+r.minutes,0);
-  const calisilan=Object.keys(gunler).length;
-  const gunSayisi=Math.max(1, Math.round((parseYmd(B.bit)-parseYmd(B.bas))/86400000)+1);
-  return `${aralikSecici()}
-    <div class="grid2" style="margin-bottom:10px">
-      <div class="stat"><div class="k">Toplam mesai</div><div class="v">${saatMetni(toplam)}</div></div>
-      <div class="stat"><div class="k">Çalışılan gün</div><div class="v">${calisilan}</div></div>
-    </div>
-    <div class="grid3">
-      <div class="stat"><div class="k">Günlük ort.</div><div class="v">${saatMetni(Math.round(toplam/Math.max(1,calisilan)))}</div></div>
-      <div class="stat"><div class="k">Haftalık ort.</div><div class="v">${saatMetni(Math.round(toplam/Math.max(1,gunSayisi/7)))}</div></div>
-      <div class="stat"><div class="k">Aylık ort.</div><div class="v">${saatMetni(Math.round(toplam/Math.max(1,gunSayisi/30)))}</div></div>
-    </div>
-    <p class="note" style="margin:10px 0 18px">Mesai, hizmet sürelerinin toplamıdır. İptaller sayılmaz.</p>
-    <div class="card">${calisilan===0?'<p class="note">Bu aralıkta kayıt yok.</p>':
-      Object.entries(gunler).sort((a,b)=>b[0].localeCompare(a[0])).map(([t,dk])=>`<div class="tr"><span>${trKisa(t)} · ${GUNLER[parseYmd(t).getDay()]}</span><b>${saatMetni(dk)}</b></div>`).join("")}</div>`;
-}
-
-function kisiler(){
-  const m={}, bg=bugun();
-  S.randevular.filter(aktif).forEach(r=>{
-    const anahtar=(r.phone||"").replace(/\D/g,"") || r.name.toLocaleLowerCase("tr").trim();
-    const k = m[anahtar] ??= {anahtar,ad:"",tel:"",ziyaret:0,tutar:0,son:null,ilk:null,yaklasan:null,kayitlar:[]};
-    k.kayitlar.push(r);
-    if (r.date<=bg){ k.ziyaret++; k.tutar+=r.price;
-      if(!k.son||r.date>k.son) k.son=r.date;
-      if(!k.ilk||r.date<k.ilk) k.ilk=r.date;
-    } else if(!k.yaklasan||r.date<k.yaklasan) k.yaklasan=r.date;
-    if(!k.ad||r.date>=(k.son||"")){ k.ad=r.name; k.tel=r.phone||k.tel; }
-  });
-  return Object.values(m).map(k=>({...k,kayitlar:k.kayitlar.sort((a,b)=>b.date.localeCompare(a.date)||toMin(b.time)-toMin(a.time))}))
-    .sort((a,b)=>(b.son||b.yaklasan||"").localeCompare(a.son||a.yaklasan||""));
+  return `
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="font-size:15px;margin-bottom:12px">Haftalık Çalışma Saatleri</h3>
+      <p class="note" style="margin-bottom:14px">Günlerin açılış/kapanış saatlerini düzenleyebilirsiniz. Kapalı günlerde dışarıdan randevu alınamaz.</p>
+      ${GUNLER.map((g, idx) => {
+        const s = S.saatler[idx] || { closed: false, open: "09:00", close: "20:00" };
+        return `
+        <div style="border-bottom:1px solid var(--line);padding:10px 0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <b style="font-family:'Oswald',sans-serif;font-size:16px">${g}</b>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)">
+              <input type="checkbox" id="m-kapali-${idx}" ${s.closed ? "checked" : ""}> Kapalı
+            </label>
+          </div>
+          <div class="row">
+            <div style="flex:1">
+              <label class="lbl">Açılış</label>
+              <input type="time" class="inp" id="m-acilis-${idx}" value="${s.open}" ${s.closed ? "disabled" : ""}>
+            </div>
+            <div style="flex:1">
+              <label class="lbl">Kapanış</label>
+              <input type="time" class="inp" id="m-kapanis-${idx}" value="${s.close}" ${s.closed ? "disabled" : ""}>
+            </div>
+          </div>
+        </div>`;
+      }).join("")}
+      <button class="btn" style="margin-top:14px" data-act="mesai-kaydet">Saatleri Kaydet</button>
+    </div>`;
 }
 
 function musteriPaneli(){
-  const bas = `<div class="row" style="margin-bottom:14px">
-    <button class="btn sm ${B.mGorunum==="kisi"?"":"ghost"}" style="flex:1" data-act="mgor" data-g="kisi">Kişi kişi</button>
-    <button class="btn sm ${B.mGorunum==="gun"?"":"ghost"}" style="flex:1" data-act="mgor" data-g="gun">Gün gün</button></div>`;
+  const arama = B.ara.trim().toLowerCase();
+  const gruplanmis = {};
 
-  if (B.mGorunum==="gun"){
-    const k=aralikta().filter(aktif), gunler={};
-    k.forEach(r=>{ (gunler[r.date] ??= []).push(r); });
-    return bas + aralikSecici() +
-      (Object.keys(gunler).length===0 ? '<p class="note">Bu aralıkta müşteri kaydı yok.</p>' :
-      Object.entries(gunler).sort((a,b)=>b[0].localeCompare(a[0])).map(([t,l])=>`
-        <div style="margin-bottom:18px"><h3 style="font-size:13px;margin-bottom:8px;color:var(--brass)">${trTarih(t)}</h3>
-        <div class="card">${l.sort((p,q)=>toMin(p.time)-toMin(q.time)).map(r=>
-          `<div class="tr"><span>${r.time} · ${esc(r.name)}${r.phone?` · ${esc(r.phone)}`:""}</span><b>${esc(r.serviceName)}</b></div>`).join("")}</div></div>`).join(""));
-  }
+  S.randevular.forEach(r => {
+    const key = (r.phone || r.name || "Bilinmeyen").trim();
+    if (!gruplanmis[key]) {
+      gruplanmis[key] = { name: r.name, phone: r.phone || "", randevular: [] };
+    }
+    gruplanmis[key].randevular.push(r);
+  });
 
-  const hepsi=kisiler(), q=B.ara.toLocaleLowerCase("tr"), bg=bugun();
-  const liste=hepsi.filter(k=>!q||k.ad.toLocaleLowerCase("tr").includes(q)||(k.tel||"").includes(B.ara));
-  return bas + `
-    <div class="grid3" style="margin-bottom:12px">
-      <div class="stat"><div class="k">Kayıtlı kişi</div><div class="v">${hepsi.length}</div></div>
-      <div class="stat"><div class="k">Düzenli</div><div class="v">${hepsi.filter(k=>k.ziyaret>=3).length}</div></div>
-      <div class="stat"><div class="k">Toplam ziyaret</div><div class="v">${hepsi.reduce((t,k)=>t+k.ziyaret,0)}</div></div>
+  const liste = Object.values(gruplanmis).filter(m => 
+    m.name.toLowerCase().includes(arama) || m.phone.includes(arama)
+  );
+
+  return `
+    <input class="inp" id="m-ara" value="${esc(B.ara)}" placeholder="Müşteri adı veya tel ile ara..." style="margin-bottom:12px">
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="btn ghost sm ${B.mGorunum==="kisi"?"on":""}" data-act="m-gorunum" data-v="kisi">Kişi Bazlı (${liste.length})</button>
+      <button class="btn ghost sm ${B.mGorunum==="liste"?"on":""}" data-act="m-gorunum" data-v="liste">Tüm Liste</button>
     </div>
-    <input class="inp" id="i-ara" value="${esc(B.ara)}" placeholder="İsim veya telefon ara">
-    ${liste.length===0 ? `<p class="note">${hepsi.length===0?"Henüz müşteri kaydı yok.":"Aramaya uyan kişi yok."}</p>` :
-    liste.map(k=>`
-      <div style="margin-bottom:8px">
-        <button class="ap" style="margin-bottom:0" data-act="kisi" data-k="${esc(k.anahtar)}">
-          <div class="tm" style="font-size:15px;min-width:46px">${k.ziyaret}<small>ziyaret</small></div>
-          <div style="flex:1">
-            <div class="nm">${esc(k.ad)}</div>
-            <div class="sb">${k.son?`Son geliş: ${trKisa(k.son)} · ${gecenGun(k.son)}`:"Henüz gelmedi"}</div>
-            <div class="sb">${esc(k.tel||"Telefon yok")} · Toplam ${tl(k.tutar)}</div>
-            ${k.yaklasan?`<span class="chip b">Yaklaşan: ${trKisa(k.yaklasan)}</span>`:""}
+
+    ${B.mGorunum === "kisi" ? `
+      ${liste.length === 0 ? `<p class="note">Müşteri bulunamadı.</p>` : liste.map(m => {
+        const aktifler = m.randevular.filter(aktif);
+        const harcama = aktifler.reduce((t, r) => t + r.price, 0);
+        const sonRandevu = m.randevular.sort((a,b) => b.date.localeCompare(a.date))[0];
+        const acik = B.acikKisi === (m.phone || m.name);
+
+        return `
+        <div class="card" style="margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;cursor:pointer" data-act="kisi-detay" data-k="${esc(m.phone || m.name)}">
+            <div>
+              <b style="font-size:16px">${esc(m.name)}</b>
+              <div style="font-size:13px;color:var(--muted)">${esc(m.phone || "Telefon yok")}</div>
+            </div>
+            <div style="text-align:right">
+              <b style="color:var(--brassSoft);font-size:15px">${tl(harcama)}</b>
+              <div style="font-size:11px;color:var(--muted)">${aktifler.length} Randevu</div>
+            </div>
           </div>
-        </button>
-        ${B.acikKisi===k.anahtar?`<div class="card" style="margin-top:6px">
-          <div class="tr"><span>İlk geliş</span><b>${k.ilk?trKisa(k.ilk):"—"}</b></div>
-          <div class="tr"><span>Ortalama harcama</span><b>${tl(k.ziyaret?k.tutar/k.ziyaret:0)}</b></div>
-          <h3 style="font-size:12px;margin:12px 0 6px;color:var(--brass)">Geçmiş</h3>
-          ${k.kayitlar.map(r=>`<div class="tr"><span>${trKisa(r.date)} · ${r.time}${r.date>bg?" (yaklaşan)":""}</span><b>${esc(r.serviceName)} · ${tl(r.price)}</b></div>`).join("")}
-        </div>`:""}
-      </div>`).join("")}`;
+          <div style="font-size:12px;color:var(--muted);margin-top:6px">Son geliş: ${trKisa(sonRandevu.date)} (${gecenGun(sonRandevu.date)})</div>
+          
+          ${!acik ? "" : `
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">
+            <h4 style="font-size:12px;color:var(--brass);margin-bottom:8px">Geçmiş Randevuları</h4>
+            ${m.randevular.map(randevuSatir).join("")}
+          </div>`}
+        </div>`;
+      }).join("")}
+    ` : `
+      ${S.randevular.length === 0 ? `<p class="note">Kayıtlı randevu bulunamadı.</p>` :
+        S.randevular.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(randevuSatir).join("")}
+    `}`;
 }
 
 function ayarPaneli(){
-  const tipSorunu = S.hizmetler.some(h=>h.tipHatasi) || Object.values(S.saatler).some(s=>s.tipHatasi);
-  const acikGun = Object.values(S.gunler).filter(g=>!g.closed).length;
   return `
-    ${tipSorunu ? `<p class="warn" style="margin-bottom:12px">Firestore'da bazı alanlar yanlış tiple girilmiş
-      (sayı yerine metin, ya da boolean yerine metin). Aşağıdaki her hizmet için <b>Kaydet</b>'e ve
-      çalışma saatlerinde <b>Saatleri kaydet</b>'e basınca düzelir.</p>` : ""}
-    ${acikGun===0 ? `<p class="warn" style="margin-bottom:12px">Takvimde açık gün yok. Çalışma saatlerini
-      kontrol edip <b>Saatleri kaydet</b>'e basın.</p>` : `<p class="note" style="margin-bottom:12px">Takvimde
-      ${acikGun} açık gün tanımlı.</p>`}
-    <h3 style="font-size:14px;margin-bottom:10px">Hizmetler, süre ve ücret</h3>
-    ${S.hizmetler.map(h=>`
-      <div class="card" style="margin-bottom:9px">
-        <input class="inp" data-hid="${h.id}" data-f="name" value="${esc(h.name)}">
-        <div class="row">
-          <div style="flex:1"><label class="lbl">Süre (dk)</label>
-            <input type="number" min="5" step="5" class="inp" data-hid="${h.id}" data-f="minutes" value="${h.minutes}"></div>
-          <div style="flex:1"><label class="lbl">Ücret (₺)</label>
-            <input type="number" min="0" step="10" class="inp" data-hid="${h.id}" data-f="price" value="${h.price}"></div>
-        </div>
-        <div class="row">
-          <button class="btn sm" data-act="hizmet-kaydet" data-id="${h.id}">Kaydet</button>
-          <button class="btn dngr sm" data-act="hizmet-sil" data-id="${h.id}" ${S.hizmetler.length<2?"disabled":""}>Sil</button>
-        </div>
-      </div>`).join("")}
-    <button class="btn ghost" data-act="hizmet-ekle">+ Yeni hizmet ekle</button>
-    <p class="note" style="margin-top:8px">Silinen hizmet listeden kalkar; geçmiş randevular adını ve ücretini
-    kendi içinde sakladığı için raporlar bozulmaz.</p>
-
-    <h3 style="font-size:14px;margin:20px 0 10px">Çalışma saatleri</h3>
-    <div class="card">
-      ${[1,2,3,4,5,6,0].map(g=>{
-        const s=S.saatler[g]||{closed:true,open:"09:00",close:"20:00"};
-        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)">
-          <span style="width:78px;font-size:13px">${GUNLER[g]}</span>
-          ${s.closed?'<span style="flex:1;color:var(--red);font-size:13px">Kapalı</span>':`
-            <input type="time" class="inp" style="margin-bottom:0;flex:1;padding:8px" data-wd="${g}" data-f="open" value="${s.open}">
-            <input type="time" class="inp" style="margin-bottom:0;flex:1;padding:8px" data-wd="${g}" data-f="close" value="${s.close}">`}
-          <button class="btn ghost sm" data-act="gun-toggle" data-g="${g}">${s.closed?"Aç":"Kapat"}</button>
-        </div>`;}).join("")}
-      <button class="btn" style="margin-top:12px" data-act="saat-kaydet">Saatleri kaydet</button>
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="font-size:15px;margin-bottom:12px">Dükkân Bilgileri</h3>
+      <label class="lbl">Dükkân Adı</label>
+      <input class="inp" id="a-dukkan" value="${esc(S.dukkan)}">
+      <button class="btn" data-act="dukkan-kaydet">Dükkân Adını Güncelle</button>
     </div>
 
-    <h3 style="font-size:14px;margin:20px 0 10px">Dükkân adı</h3>
-    <input class="inp" id="i-dukkan" value="${esc(S.dukkan)}">
-    <button class="btn" data-act="dukkan-kaydet">Kaydet</button>
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="font-size:15px;margin-bottom:12px">Hizmet Yönetimi</h3>
+      ${S.hizmetler.map((h, i) => `
+        <div class="card" style="background:var(--panel2);margin-bottom:8px">
+          <label class="lbl">Hizmet Adı</label>
+          <input class="inp" id="h-ad-${h.id}" value="${esc(h.name)}">
+          <div class="row">
+            <div style="flex:1"><label class="lbl">Süre (Dk)</label><input type="number" class="inp" id="h-sure-${h.id}" value="${h.minutes}"></div>
+            <div style="flex:1"><label class="lbl">Ücret (₺)</label><input type="number" class="inp" id="h-fiyat-${h.id}" value="${h.price}"></div>
+          </div>
+          <div class="row">
+            <button class="btn sm" data-act="hizmet-guncelle" data-id="${h.id}">Güncelle</button>
+            <button class="btn dngr sm" data-act="hizmet-sil" data-id="${h.id}">Sil</button>
+          </div>
+        </div>`).join("")}
 
-    <h3 style="font-size:14px;margin:24px 0 10px">Panel şifresi</h3>
-    <div class="card">
-      <label class="lbl">Mevcut şifre</label><input type="password" class="inp" id="s-eski" autocomplete="current-password">
-      <label class="lbl">Yeni şifre</label><input type="password" class="inp" id="s-yeni" autocomplete="new-password">
-      <label class="lbl">Yeni şifre tekrar</label><input type="password" class="inp" id="s-tekrar" autocomplete="new-password">
-      <p class="note" id="s-durum" style="margin-bottom:10px"></p>
-      <button class="btn" data-act="sifre">Şifreyi değiştir</button>
+      <div class="card" style="border-style:dashed">
+        <h4 style="font-size:13px;margin-bottom:8px">Yeni Hizmet Ekle</h4>
+        <input class="inp" id="h-yeni-ad" placeholder="Hizmet Adı (Örn: Saç & Sakal)">
+        <div class="row">
+          <div style="flex:1"><input type="number" class="inp" id="h-yeni-sure" placeholder="Süre (dk)"></div>
+          <div style="flex:1"><input type="number" class="inp" id="h-yeni-fiyat" placeholder="Ücret (₺)"></div>
+        </div>
+        <button class="btn ghost" data-act="hizmet-ekle">+ Hizmet Ekle</button>
+      </div>
     </div>
-    <p class="note" style="margin-top:8px">Şifre Firebase Authentication'da tutulur, bu dosyada değil.</p>`;
+
+    <div class="card">
+      <h3 style="font-size:15px;margin-bottom:12px">Şifre Değiştir</h3>
+      <label class="lbl">Mevcut Şifre</label>
+      <input type="password" class="inp" id="s-eski" autocomplete="current-password">
+      <label class="lbl">Yeni Şifre</label>
+      <input type="password" class="inp" id="s-yeni" autocomplete="new-password">
+      <button class="btn" data-act="sifre-degistir">Şifreyi Güncelle</button>
+    </div>`;
 }
 
 function sifirlaPaneli(){
   return `
-    <h3 style="font-size:14px;margin-bottom:10px">Verileri sıfırla</h3>
-    <p class="note" style="margin-bottom:14px">Son 12 ayda ${S.randevular.length} randevu kaydı var.
-    Silme geri alınamaz; önce Rapor ekranından rakamları not alın.</p>
-    <div class="card" style="margin-bottom:10px">
-      <div style="font-size:14px;margin-bottom:8px">Seçili aralıktaki randevuları sil</div>
-      <p class="note" style="margin-bottom:10px">${trKisa(B.bas)} – ${trKisa(B.bit)} arası silinir.
-      Hizmetler ve saatler korunur.</p>
-      <button class="btn dngr" data-act="sifirla-mod" data-m="aralik">Bu aralığı sil</button>
-    </div>
-    <div class="card">
-      <div style="font-size:14px;margin-bottom:8px">Tüm randevuları sil</div>
-      <p class="note" style="margin-bottom:10px">Bütün müşteri geçmişi silinir. Hizmetler ve saatler kalır.</p>
-      <button class="btn dngr" data-act="sifirla-mod" data-m="hepsi">Tümünü sil</button>
-    </div>
-    ${aralikSecici()}`;
-}
+    <div class="card" style="border-color:var(--red)">
+      <h3 style="font-size:16px;color:var(--red);margin-bottom:8px">Tehlikeli Bölge</h3>
+      <p class="note" style="margin-bottom:14px">Buradaki işlemler geri alınamaz. Lütfen dikkatli kullanın.</p>
+      
+      <div style="margin-bottom:16px">
+        <h4 style="font-size:14px;margin-bottom:4px">Eski Randevuları Temizle</h4>
+        <p class="note" style="margin-bottom:8px">Bugünden önceki tüm randevu kayıtlarını sistemden tamamen siler.</p>
+        <button class="btn dngr sm" data-act="sifirla-modal" data-mod="eski">Eski Randevuları Sil</button>
+      </div>
 
-function sifirlaModal(){
-  return `<div class="modal" data-act="modal-kapat"><div class="sheet" data-stop>
-    <h2 style="font-size:20px;margin-bottom:10px">Emin misiniz?</h2>
-    <p class="note" style="margin-bottom:12px">${B.sifirlaMod==="aralik"?`${trKisa(B.bas)} – ${trKisa(B.bit)} arasındaki`:"Tüm"} randevular silinecek.
-    Onaylamak için <b style="color:var(--brass)">SIFIRLA</b> yazın.</p>
-    <input class="inp" id="i-onay" placeholder="SIFIRLA">
-    <div class="row"><button class="btn dngr" data-act="sifirla-uygula">Sil</button>
-    <button class="btn ghost" data-act="modal-kapat">Vazgeç</button></div>
-  </div></div>`;
+      <hr style="border:none;border-top:1px solid var(--line);margin:12px 0">
+
+      <div>
+        <h4 style="font-size:14px;margin-bottom:4px">Tüm Verileri Sıfırla</h4>
+        <p class="note" style="margin-bottom:8px">Sistemdeki tüm randevuları siler. Hizmet ve çalışma saatleri ayarları korunur.</p>
+        <button class="btn dngr sm" data-act="sifirla-modal" data-mod="tum">Tüm Randevuları Sıfırla</button>
+      </div>
+    </div>`;
 }
 
 function detayModal(){
-  const r = S.randevular.find(x=>x.id===B.detay); if(!r) return "";
-  return `<div class="modal" data-act="modal-kapat"><div class="sheet" data-stop>
-    <div class="kicker">Randevu detayı</div>
-    <h2 style="font-size:22px;margin:8px 0 14px">${esc(r.name)}</h2>
-    <div class="tr"><span>Hizmet</span><b>${esc(r.serviceName)}</b></div>
-    <div class="tr"><span>Tarih</span><b>${trTarih(r.date)}</b></div>
-    <div class="tr"><span>Saat</span><b>${r.time} – ${fromMin(toMin(r.time)+r.minutes)}</b></div>
-    <div class="tr"><span>Süre</span><b>${r.minutes} dk</b></div>
-    <div class="tr"><span>Ücret</span><b>${tl(r.price)}</b></div>
-    <div class="tr"><span>Telefon</span><b>${r.phone?`<a href="tel:${esc(r.phone)}" style="color:inherit">${esc(r.phone)}</a>`:"—"}</b></div>
-    <div class="tr"><span>Kaynak</span><b>${r.source==="walkin"?"Dükkândan":"Online"}</b></div>
-    <div class="tr"><span>Durum</span><b>${r.status==="confirmed"?"Onaylı":r.status==="cancelled"?"İptal":"Onay bekliyor"}</b></div>
-    <div class="row" style="margin-top:16px">
-      ${r.status!=="confirmed"?`<button class="btn" data-act="onayla" data-id="${r.id}">Onayla</button>`:""}
-      ${r.status!=="cancelled"?`<button class="btn dngr" data-act="iptal" data-id="${r.id}">İptal et</button>`:""}
-    </div>
-    ${r.phone?`<button class="btn ghost sm" style="width:100%;margin-top:8px" data-act="engelle" data-tel="${esc(r.phone)}">Bu numarayı engelle</button>`:""}
-    <button class="btn ghost" style="margin-top:8px" data-act="modal-kapat">Kapat</button>
-  </div></div>`;
+  const r = S.randevular.find(x => x.id === B.detay);
+  if (!r) return "";
+  return `
+    <div class="modal" data-act="detay-kapat">
+      <div class="sheet" onclick="event.stopPropagation()">
+        <div class="kicker">Randevu Detayı</div>
+        <h2 style="font-size:22px;margin:4px 0 12px">${esc(r.name)}</h2>
+        <div class="tr"><span>Telefon</span><b>${esc(r.phone || "Belirtilmemiş")}</b></div>
+        <div class="tr"><span>Hizmet</span><b>${esc(r.serviceName)}</b></div>
+        <div class="tr"><span>Tarih</span><b>${trTarih(r.date)}</b></div>
+        <div class="tr"><span>Saat</span><b>${r.time} – ${fromMin(toMin(r.time)+r.minutes)}</b></div>
+        <div class="tr"><span>Süre</span><b>${r.minutes} dk</b></div>
+        <div class="tr"><span>Ücret</span><b>${tl(r.price)}</b></div>
+        <div class="tr"><span>Kaynak</span><b>${r.source==="walkin"?"Dükkândan Eklendi":"Müşteri Randevusu"}</b></div>
+        
+        <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px">
+          ${r.status !== "confirmed" ? `<button class="btn" data-act="durum-guncelle" data-status="confirmed">Randevuyu Onayla</button>` : ""}
+          ${r.status !== "cancelled" ? `<button class="btn dngr" data-act="durum-guncelle" data-status="cancelled">Randevuyu İptal Et</button>` : ""}
+          <button class="btn ghost dngr" data-act="randevu-sil" data-id="${r.id}">Randevuyu Kalıcı Olarak Sil</button>
+          <button class="btn ghost" data-act="detay-kapat">Kapat</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function sifirlaModal(){
+  const metin = B.sifirlaMod === "eski" ? "Eski randevuları silmek" : "TÜM randevuları silmek";
+  return `
+    <div class="modal" data-act="sifirla-kapat">
+      <div class="sheet" onclick="event.stopPropagation()">
+        <h3 style="color:var(--red);font-size:20px;margin-bottom:8px">Emin misiniz?</h3>
+        <p class="note" style="margin-bottom:14px">${metin} üzeresiniz. Bu işlem geri alınamaz!</p>
+        <p class="lbl">Onaylamak için <b>SIL</b> yazın:</p>
+        <input class="inp" id="i-sifirla-onay" value="${esc(B.sifirlaOnay)}" placeholder="SIL">
+        <div class="row" style="margin-top:10px">
+          <button class="btn dngr" data-act="sifirla-onayla" ${B.sifirlaOnay.trim().toUpperCase()==="SIL"?"":"disabled"}>Kalıcı Olarak Sil</button>
+          <button class="btn ghost" data-act="sifirla-kapat">Vazgeç</button>
+        </div>
+      </div>
+    </div>`;
 }
 
 /* =========================================================
-   7) OLAYLAR
+   7) MÜŞTERİ SLOT HESAPLAMA
    ========================================================= */
-/* Müsaitlik, kişisel veri içermeyen "slots" kayıtlarından hesaplanır.
-   slots yalnızca tarih ve saat tutar; isim/telefon içeren appointments
-   koleksiyonu müşteri tarafına tamamen kapalıdır. */
-async function saatleriGetir(){
-  M.slotYukleniyor = true; M.slotlar = []; M.hata = ""; ciz();
+async function slotlariYukle(){
+  if (!M.hizmetId || !M.tarih) return;
+  M.slotYukleniyor = true;
+  M.hata = "";
+  M.saat = null;
+  ciz();
+
   try {
-    const h = S.hizmetler.find(x=>x.id===M.hizmetId);
-    const g = S.gunler[M.tarih];
-    if (!h || !g || g.closed) { M.slotlar=[]; M.slotYukleniyor=false; return ciz(); }
+    const h = S.hizmetler.find(x => x.id === M.hizmetId);
+    const gunVerisi = S.gunler[M.tarih];
+    const d = parseYmd(M.tarih);
+    const sablon = S.saatler[d.getDay()] || { closed: true, open: "09:00", close: "20:00" };
 
-    const snap = await getDocs(query(collection(db,"slots"), where("date","==",M.tarih)));
-    const dolu = new Set(snap.docs.map(d=>d.data().time));
+    const acilis = gunVerisi?.open || sablon.open;
+    const kapanis = gunVerisi?.close || sablon.close;
+    const kapali = gunVerisi ? gunVerisi.closed : sablon.closed;
 
-    const ac=toMin(g.open), kapa=toMin(g.close);
-    const bg=bugun(), simdi=new Date().getHours()*60+new Date().getMinutes();
-    const liste=[];
-    for(let t=ac; t+h.minutes<=kapa; t+=15){
-      let bos=true;
-      for(let k=t; k<t+h.minutes; k+=15) if(dolu.has(fromMin(k))) { bos=false; break; }
-      if (M.tarih===bg && t<=simdi) bos=false;
-      liste.push({ time:fromMin(t), free:bos });
+    if (kapali) {
+      M.slotlar = [];
+      M.slotYukleniyor = false;
+      ciz();
+      return;
     }
-    M.slotlar=liste;
-  } catch(e){
-    console.error("Müsaitlik hatası:", e.code, e.message);
-    M.hata = /permission/i.test(e.code||"") ? "Güvenlik kuralları henüz güncellenmemiş görünüyor."
-           : "Saatler getirilemedi, sayfayı yenileyip tekrar deneyin.";
-  }
-  M.slotYukleniyor = false; ciz();
-}
 
-document.addEventListener("click", async (ev) => {
-  const t = ev.target.closest("[data-act]"); if(!t) return;
-  if (t.hasAttribute("data-stop")) return;
-  const act = t.dataset.act;
+    // Seçili gündeki mevcut randevuları Firestore'dan taze çek
+    const rSnap = await getDocs(query(collection(db, "appointments"), where("date", "==", M.tarih)));
+    const mevcutlar = rSnap.docs.map(doc => doc.data()).filter(r => r.status !== "cancelled");
 
-  /* müşteri */
-  if (act==="hizmet"){ M.hizmetId=t.dataset.id; M.saat=null; M.hata=""; if(M.tarih) await saatleriGetir(); else ciz(); return; }
-  if (act==="gun"){ M.tarih=t.dataset.key; M.saat=null; M.hata=""; await saatleriGetir(); return; }
-  if (act==="saat"){ M.saat=t.dataset.t; M.hata=""; ciz(); return; }
-  if (act==="gonder"){ await randevuGonder(); return; }
-  if (act==="ozet-kapat"){ Object.assign(M,{hizmetId:null,tarih:null,saat:null,slotlar:[],ad:"",soyad:"",tel:"",kvkk:false,ozet:null,hata:""}); ciz(); return; }
-  if (act==="giris-ac"){ S.ekran="giris"; girisHata=""; ciz(); return; }
-  if (act==="giris-iptal"){ S.ekran="musteri"; ciz(); return; }
-  if (act==="giris"){ await girisYap(); return; }
-  if (act==="cikis"){ await signOut(auth); S.admin=false; S.ekran="musteri"; ciz(); return; }
+    const startMin = toMin(acilis);
+    const endMin = toMin(kapanis);
+    const slots = [];
 
-  /* berber */
-  if (act==="sekme"){ B.sekme=t.dataset.k; B.ekleAcik=false; ciz(); return; }
-  if (act==="gun-sec"){ B.secili=t.dataset.key; ciz(); return; }
-  if (act==="ay"){ B.ay=new Date(B.ay.getFullYear(), B.ay.getMonth()+Number(t.dataset.y), 1); ciz(); return; }
-  if (act==="detay"){ B.detay=t.dataset.id; ciz(); return; }
-  if (act==="modal-kapat"){ B.detay=null; B.sifirlaMod=null; ciz(); return; }
-  if (act==="onayla" || act==="iptal"){
-    const id=t.dataset.id, r=S.randevular.find(x=>x.id===id);
-    if (act==="iptal"){
-      // Randevu iptal edilince kapattığı saatler de serbest kalmalı
-      const batch=writeBatch(db);
-      batch.update(doc(db,"appointments",id), { status:"cancelled" });
-      if (r) for(let k=toMin(r.time); k<toMin(r.time)+r.minutes; k+=15)
-        batch.delete(doc(db,"slots",`${r.date}_${fromMin(k).replace(":","")}`));
-      await batch.commit();
-      if(r) r.status="cancelled";
-    } else {
-      await updateDoc(doc(db,"appointments",id), { status:"confirmed" });
-      if(r) r.status="confirmed";
+    // 30 dakikalık aralıklarla slotlar üretilir
+    for (let m = startMin; m + h.minutes <= endMin; m += 30) {
+      const slotStart = m;
+      const slotEnd = m + h.minutes;
+      const timeStr = fromMin(m);
+
+      // Çakışma kontrolü
+      const cakisma = mevcutlar.some(r => {
+        const rStart = toMin(r.time);
+        const rEnd = rStart + r.minutes;
+        return Math.max(slotStart, rStart) < Math.min(slotEnd, rEnd);
+      });
+
+      // Geçmiş saat kontrolü (Bugün seçildiyse)
+      let gecmis = false;
+      if (M.tarih === bugun()) {
+        const simdi = new Date();
+        const simdiDk = simdi.getHours() * 60 + simdi.getMinutes();
+        if (slotStart <= simdiDk) gecmis = true;
+      }
+
+      slots.push({ time: timeStr, free: !cakisma && !gecmis });
     }
-    B.detay=null; ciz(); return;
-  }
-  if (act==="engelle"){
-    const tel=(t.dataset.tel||"").replace(/\D/g,"");
-    if(!tel||!confirm("Bu numaradan yeni online randevu alınamayacak. Onaylıyor musunuz?")) return;
-    await setDoc(doc(db,"blocklist",tel), { addedAt: serverTimestamp() });
-    alert("Numara engellendi."); B.detay=null; ciz(); return;
-  }
-  if (act==="gun-kapat"){
-    const key=t.dataset.key;
-    const s=S.saatler[parseYmd(key).getDay()] || {open:"09:00", close:"20:00"};
-    const g=S.gunler[key] || { date:key, closed:false, open:s.open, close:s.close };
-    const yeni={ ...g, date:key, closed:!g.closed, manuel:true };
-    await setDoc(doc(db,"days",key), yeni);
-    S.gunler[key]=yeni; ciz(); return;
-  }
-  if (act==="ekle-ac"){ B.ekleAcik=true; ciz(); return; }
-  if (act==="ekle-kapat"){ B.ekleAcik=false; ciz(); return; }
-  if (act==="ekle-kaydet"){ await manuelKaydet(t.dataset.tarih); return; }
-  if (act==="preset"){ preset(t.dataset.p); ciz(); return; }
-  if (act==="mgor"){ B.mGorunum=t.dataset.g; B.acikKisi=null; ciz(); return; }
-  if (act==="kisi"){ B.acikKisi = B.acikKisi===t.dataset.k ? null : t.dataset.k; ciz(); return; }
-  if (act==="hizmet-kaydet"){ await hizmetKaydet(t.dataset.id); return; }
-  if (act==="hizmet-sil"){ await hizmetSil(t.dataset.id); return; }
-  if (act==="hizmet-ekle"){ await hizmetEkle(); return; }
-  if (act==="gun-toggle"){ await gunToggle(Number(t.dataset.g)); return; }
-  if (act==="saat-kaydet"){ await saatKaydet(); return; }
-  if (act==="dukkan-kaydet"){ await dukkanKaydet(); return; }
-  if (act==="sifre"){ await sifreDegistir(); return; }
-  if (act==="sifirla-mod"){ B.sifirlaMod=t.dataset.m; ciz(); return; }
-  if (act==="sifirla-uygula"){ await sifirlaUygula(); return; }
-});
 
-/* girdileri yakala (yeniden çizmeden) */
-document.addEventListener("input", (ev) => {
-  const el=ev.target;
-  if (el.id==="i-ad") M.ad=el.value;
-  if (el.id==="i-soyad") M.soyad=el.value;
-  if (el.id==="i-tel") M.tel=el.value;
-  if (el.id==="i-kvkk") M.kvkk=el.checked;
-  if (el.id==="i-ara"){ B.ara=el.value; ciz(); const q=$("#i-ara"); if(q){q.focus(); q.setSelectionRange(q.value.length,q.value.length);} }
-});
-document.addEventListener("change", (ev) => {
-  const el=ev.target;
-  if (el.id==="a-bas"){ B.bas=el.value; ciz(); }
-  if (el.id==="a-bit"){ B.bit=el.value; ciz(); }
-});
-
-function preset(p){
-  const b=new Date(); b.setHours(0,0,0,0);
-  if(p==="gun"){ B.bas=B.bit=ymd(b); }
-  if(p==="hafta"){ const g=(b.getDay()+6)%7; const s=new Date(b); s.setDate(b.getDate()-g);
-    const e=new Date(s); e.setDate(s.getDate()+6); B.bas=ymd(s); B.bit=ymd(e); }
-  if(p==="ay"){ B.bas=ymd(new Date(b.getFullYear(),b.getMonth(),1)); B.bit=ymd(new Date(b.getFullYear(),b.getMonth()+1,0)); }
-}
-
-/* Randevu + slot kayıtları tek bir toplu yazmayla oluşturulur.
-   Slot doküman kimliği tarih_saat olduğu için, aynı saniyede aynı saate basan
-   ikinci kişinin yazması Firestore tarafından reddedilir: çift rezervasyon imkânsız. */
-async function randevuGonder(){
-  M.hata="";
-  const ad=`${M.ad} ${M.soyad}`.trim();
-  const tel=M.tel.replace(/\D/g,"");
-  if (ad.length<3) return (M.hata="Ad ve soyadınızı yazın.", ciz());
-  if (tel.length<10) return (M.hata="Telefon numarası eksik görünüyor.", ciz());
-  if (!M.kvkk) return (M.hata="Devam etmek için onay kutusunu işaretleyin.", ciz());
-  const h=S.hizmetler.find(x=>x.id===M.hizmetId);
-  if(!h) return (M.hata="Hizmet bulunamadı.", ciz());
-
-  M.gonderiliyor=true; ciz();
-  const apptId = doc(collection(db,"appointments")).id;
-  const bas = toMin(M.saat);
-  const bloklar = []; for(let k=bas; k<bas+h.minutes; k+=15) bloklar.push(fromMin(k));
-
-  try {
-    const batch = writeBatch(db);
-    batch.set(doc(db,"appointments",apptId), {
-      date:M.tarih, time:M.saat, minutes:h.minutes,
-      serviceId:h.id, serviceName:h.name, price:h.price,
-      name:ad, phone:tel, status:"pending", source:"online",
-      anonymized:false, createdAt:serverTimestamp()
-    });
-    bloklar.forEach(t => batch.set(doc(db,"slots",`${M.tarih}_${t.replace(":","")}`), {
-      date:M.tarih, time:t, apptId
-    }));
-    await batch.commit();
-    M.ozet={ id:apptId, date:M.tarih, time:M.saat, minutes:h.minutes,
-             name:ad, serviceName:h.name, price:h.price };
-  } catch(e){
-    console.error("Randevu hatası:", e.code, e.message);
-    if (/already-exists|permission/i.test(e.code||"")) {
-      M.hata="Bu saat az önce doldu, lütfen başka bir saat seçin.";
-      M.saat=null; await saatleriGetir();
-    } else M.hata="Randevu gönderilemedi, tekrar deneyin.";
-  }
-  M.gonderiliyor=false; ciz();
-}
-
-async function yetkiliMi(u){
-  try { return (await getDoc(doc(db,"admins",u.uid))).exists(); }
-  catch(e){ return false; }
-}
-
-async function girisYap(){
-  const sifre=$("#i-sifre")?.value||"";
-  girisHata="";
-  if (BERBER_MAIL.includes("BURAYA")) { girisHata="Kodda BERBER_MAIL alanı doldurulmamış."; ciz(); return; }
-  try {
-    const cred = await signInWithEmailAndPassword(auth, BERBER_MAIL, sifre);
-    if (!(await yetkiliMi(cred.user))){ await signOut(auth); girisHata="Şifre doğru ama bu hesabın panel yetkisi yok (admins dokümanı eksik)."; ciz(); return; }
-  } catch(e){
-    console.error("Giriş hatası:", e.code, e.message);
-    const k = e.code || "";
-    girisHata =
-      k.includes("operation-not-allowed") ? "Firebase'de E-posta/Şifre yöntemi açık değil." :
-      k.includes("invalid-email")         ? "Koddaki BERBER_MAIL adresi geçersiz." :
-      k.includes("user-not-found")        ? "Bu adreste kayıtlı hesap yok. Authentication → Users'tan oluşturun." :
-      k.includes("too-many-requests")     ? "Çok fazla hatalı deneme. Birkaç dakika bekleyin." :
-      k.includes("network")               ? "Bağlantı kurulamadı. Sayfa localhost veya https üzerinden açılmalı." :
-      k.includes("api-key")               ? "Firebase anahtarları hatalı." :
-      "Şifre hatalı. (" + k + ")";
+    M.slotlar = slots;
+  } catch (e) {
+    console.error("Slot yükleme hatası:", e);
+    M.hata = "Saatler yüklenirken hata oluştu.";
+  } finally {
+    M.slotYukleniyor = false;
     ciz();
   }
 }
 
-async function manuelKaydet(tarih){
-  const hid=$("#e-hizmet")?.value, saat=$("#e-saat")?.value, ad=$("#e-ad")?.value.trim()||"", tel=$("#e-tel")?.value.trim()||"";
-  const h=S.hizmetler.find(x=>x.id===hid);
-  if(!h||!saat||ad.length<2) return alert("Hizmet, saat ve ad soyad gerekli.");
-  const cak=S.randevular.some(r=>r.date===tarih&&aktif(r)&&toMin(r.time)<toMin(saat)+h.minutes&&toMin(saat)<toMin(r.time)+r.minutes);
-  if(cak && !confirm("Bu saatte başka randevu var. Yine de eklensin mi?")) return;
-  const kayit={date:tarih,time:saat,minutes:h.minutes,serviceId:h.id,serviceName:h.name,price:h.price,
-    name:ad,phone:tel,status:"confirmed",source:"walkin",anonymized:false,createdAt:serverTimestamp()};
-  const id = doc(collection(db,"appointments")).id;
-  const batch = writeBatch(db);
-  batch.set(doc(db,"appointments",id), kayit);
-  for(let k=toMin(saat); k<toMin(saat)+h.minutes; k+=15)
-    batch.set(doc(db,"slots",`${tarih}_${fromMin(k).replace(":","")}`), { date:tarih, time:fromMin(k), apptId:id });
-  await batch.commit();
-  S.randevular.push({id,...kayit});
-  B.ekleAcik=false; ciz();
-}
+/* =========================================================
+   8) ETKİLEŞİM & OLAY YÖNETİMİ
+   ========================================================= */
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-act]");
+  if (!btn) return;
+  const act = btn.dataset.act;
 
-async function hizmetKaydet(id){
-  const al=(f)=>document.querySelector(`[data-hid="${id}"][data-f="${f}"]`)?.value;
-  const yeni={ name:(al("name")||"").trim(), minutes:Math.max(5,Number(al("minutes"))||30), price:Math.max(0,Number(al("price"))||0) };
-  if(yeni.name.length<2) return alert("Hizmet adı çok kısa.");
-  await updateDoc(doc(db,"services",id), yeni);
-  Object.assign(S.hizmetler.find(h=>h.id===id), yeni); ciz();
-}
-async function hizmetSil(id){
-  if(S.hizmetler.length<2) return;
-  if(!confirm("Bu hizmet listeden kaldırılsın mı? Geçmiş randevular etkilenmez.")) return;
-  await updateDoc(doc(db,"services",id), { active:false });
-  S.hizmetler=S.hizmetler.filter(h=>h.id!==id); ciz();
-}
-async function hizmetEkle(){
-  const yeni={ name:"Yeni hizmet", minutes:30, price:0, active:true, order:S.hizmetler.length+1 };
-  const ref=await addDoc(collection(db,"services"), yeni);
-  S.hizmetler.push({id:ref.id,...yeni}); ciz();
-}
-async function gunToggle(g){
-  const s=S.saatler[g]||{closed:true,open:"09:00",close:"20:00"};
-  const yeni={...s, closed:!s.closed};
-  await setDoc(doc(db,"workingHours",String(g)), yeni);
-  S.saatler[g]=yeni; ciz();
-}
-async function saatKaydet(){
-  const batch=writeBatch(db);
-  [0,1,2,3,4,5,6].forEach(g=>{
-    const s=S.saatler[g]||{closed:true,open:"09:00",close:"20:00"};
-    const o=document.querySelector(`[data-wd="${g}"][data-f="open"]`)?.value||s.open;
-    const c=document.querySelector(`[data-wd="${g}"][data-f="close"]`)?.value||s.close;
-    const yeni={closed:bl(s.closed), open:String(o), close:String(c)};
-    S.saatler[g]=yeni;
-    batch.set(doc(db,"workingHours",String(g)), yeni);
-  });
-  await batch.commit();
-  await gunleriUret();
-  alert("Çalışma saatleri kaydedildi ve takvim güncellendi.");
-}
-async function dukkanKaydet(){
-  const ad=$("#i-dukkan")?.value.trim()||"Berber";
-  await setDoc(doc(db,"shop","settings"), { name:ad }, { merge:true });
-  S.dukkan=ad; ciz();
-}
-async function sifreDegistir(){
-  const eski=$("#s-eski").value, yeni=$("#s-yeni").value, tekrar=$("#s-tekrar").value, d=$("#s-durum");
-  const yaz=(m,k)=>{ d.textContent=m; d.className=k?"note":"warn"; };
-  if(yeni.length<8) return yaz("Yeni şifre en az 8 karakter olmalı.");
-  if(yeni!==tekrar) return yaz("Yeni şifreler birbirini tutmuyor.");
-  try{
-    const u=auth.currentUser;
-    await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, eski));
-    await updatePassword(u, yeni);
-    yaz("Şifre değiştirildi.", true);
-    $("#s-eski").value=$("#s-yeni").value=$("#s-tekrar").value="";
-  }catch(e){ yaz("Mevcut şifre hatalı ya da yeni şifre zayıf."); }
-}
-async function sifirlaUygula(){
-  const o=($("#i-onay")?.value||"").trim().toUpperCase();
-  if(o!=="SIFIRLA"&&o!=="SİFİRLA") return;
-  const hedef = B.sifirlaMod==="aralik" ? S.randevular.filter(r=>r.date>=B.bas&&r.date<=B.bit) : S.randevular.slice();
-  for(let i=0;i<hedef.length;i+=400){
-    const b=writeBatch(db);
-    hedef.slice(i,i+400).forEach(r=>b.delete(doc(db,"appointments",r.id)));
-    await b.commit();
+  /* --- MÜŞTERİ AKIŞI --- */
+  if (act === "hizmet") {
+    M.hizmetId = btn.dataset.id;
+    M.saat = null;
+    if (M.tarih) slotlariYukle();
+    else ciz();
+  } else if (act === "gun") {
+    M.tarih = btn.dataset.key;
+    slotlariYukle();
+  } else if (act === "saat") {
+    M.saat = btn.dataset.t;
+    ciz();
+  } else if (act === "gonder") {
+    M.ad = ($("#i-ad")?.value || "").trim();
+    M.soyad = ($("#i-soyad")?.value || "").trim();
+    M.tel = ($("#i-tel")?.value || "").trim();
+    M.kvkk = $("#i-kvkk")?.checked || false;
+
+    if (!M.ad || !M.soyad) { M.hata = "Lütfen adınızı ve soyadınızı girin."; ciz(); return; }
+    if (!M.tel || M.tel.length < 10) { M.hata = "Geçerli bir telefon numarası girin."; ciz(); return; }
+    if (!M.kvkk) { M.hata = "Kişisel verilerin saklanması onayını işaretlemelisiniz."; ciz(); return; }
+
+    M.gonderiliyor = true;
+    M.hata = "";
+    ciz();
+
+    try {
+      const h = S.hizmetler.find(x => x.id === M.hizmetId);
+      const tamAd = `${M.ad} ${M.soyad}`;
+      const veri = {
+        serviceId: h.id,
+        serviceName: h.name,
+        minutes: h.minutes,
+        price: h.price,
+        date: M.tarih,
+        time: M.saat,
+        name: tamAd,
+        phone: M.tel,
+        status: "pending",
+        source: "online",
+        createdAt: serverTimestamp()
+      };
+
+      await addDoc(collection(db, "appointments"), veri);
+      M.ozet = { ...veri, name: tamAd };
+    } catch (err) {
+      console.error("Randevu kaydetme hatası:", err);
+      M.hata = "Randevunuz oluşturulurken bir sistem hatası oluştu. Lütfen tekrar deneyin.";
+    } finally {
+      M.gonderiliyor = false;
+      ciz();
+    }
+  } else if (act === "ozet-kapat") {
+    M.ozet = null;
+    M.hizmetId = null;
+    M.tarih = null;
+    M.saat = null;
+    ciz();
   }
-  const sil=new Set(hedef.map(r=>r.id));
-  S.randevular=S.randevular.filter(r=>!sil.has(r.id));
-  B.sifirlaMod=null; ciz();
-}
 
-/* Boşta oturum kapatma: dükkân tabletinde açık kalan panel,
-   müşteri verisini eline geçirmenin en kolay yoludur. 20 dk hareketsizlikte çıkış. */
-let bosZamanlayici;
-function bosSayaciKur(){
-  clearTimeout(bosZamanlayici);
-  if(!S.admin) return;
-  bosZamanlayici = setTimeout(async ()=>{
-    if(S.admin){ await signOut(auth); S.admin=false; S.ekran="musteri"; ciz(); }
-  }, 20*60*1000);
-}
-["click","keydown","touchstart"].forEach(e=>document.addEventListener(e, bosSayaciKur, {passive:true}));
+  /* --- EKRAN GEÇİŞLERİ & GİRİŞ --- */
+  else if (act === "giris-ac") {
+    S.ekran = "giris";
+    girisHata = "";
+    ciz();
+  } else if (act === "giris-iptal") {
+    S.ekran = "musteri";
+    ciz();
+  } else if (act === "giris") {
+    const sifre = $("#i-sifre")?.value || "";
+    try {
+      await signInWithEmailAndPassword(auth, BERBER_MAIL, sifre);
+      S.ekran = "berber";
+      randevulariDinle();
+    } catch (e) {
+      console.error(e);
+      girisHata = "Hatalı şifre girdiniz.";
+      ciz();
+    }
+  } else if (act === "cikis") {
+    await signOut(auth);
+    S.ekran = "musteri";
+    S.admin = false;
+    if (randevuAbonelik) randevuAbonelik();
+    ciz();
+  }
+
+  /* --- BERBER PANELİ --- */
+  else if (act === "sekme") {
+    B.sekme = btn.dataset.k;
+    ciz();
+  } else if (act === "detay") {
+    B.detay = btn.dataset.id;
+    ciz();
+  } else if (act === "detay-kapat") {
+    B.detay = null;
+    ciz();
+  } else if (act === "durum-guncelle") {
+    const st = btn.dataset.status;
+    await updateDoc(doc(db, "appointments", B.detay), { status: st });
+    B.detay = null;
+  } else if (act === "randevu-sil") {
+    if (confirm("Bu randevu kalıcı olarak silinecektir. Emin misiniz?")) {
+      await deleteDoc(doc(db, "appointments", btn.dataset.id));
+      B.detay = null;
+    }
+  } else if (act === "ay") {
+    const yon = Number(btn.dataset.y);
+    B.ay = new Date(B.ay.getFullYear(), B.ay.getMonth() + yon, 1);
+    ciz();
+  } else if (act === "gun-sec") {
+    B.secili = btn.dataset.key;
+    ciz();
+  } else if (act === "gun-kapat") {
+    const k = btn.dataset.key;
+    const mevc = S.gunler[k]?.closed;
+    const yeni = { date: k, closed: !mevc, manuel: true };
+    await setDoc(doc(db, "days", k), yeni, { merge: true });
+    S.gunler[k] = { ...S.gunler[k], ...yeni };
+    ciz();
+  } else if (act === "ekle-ac") {
+    B.ekleAcik = true;
+    ciz();
+  } else if (act === "ekle-kapat") {
+    B.ekleAcik = false;
+    ciz();
+  } else if (act === "ekle-kaydet") {
+    const tarih = btn.dataset.tarih;
+    const hId = $("#e-hizmet").value;
+    const saat = $("#e-saat").value;
+    const ad = $("#e-ad").value.trim();
+    const tel = $("#e-tel").value.trim();
+
+    if (!saat || !ad) { alert("Lütfen saat ve isim alanlarını doldurun."); return; }
+    const h = S.hizmetler.find(x => x.id === hId);
+
+    await addDoc(collection(db, "appointments"), {
+      serviceId: h.id, serviceName: h.name, minutes: h.minutes, price: h.price,
+      date: tarih, time: saat, name: ad, phone: tel, status: "confirmed", source: "walkin",
+      createdAt: serverTimestamp()
+    });
+    B.ekleAcik = false;
+    ciz();
+  }
+
+  /* --- RAPOR PRESETLERİ --- */
+  else if (act === "preset") {
+    const p = btn.dataset.p;
+    const now = new Date();
+    if (p === "gun") {
+      B.bas = bugun(); B.bit = bugun();
+    } else if (p === "hafta") {
+      const first = now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1);
+      const d1 = new Date(now.setDate(first));
+      const d2 = new Date(d1); d2.setDate(d1.getDate() + 6);
+      B.bas = ymd(d1); B.bit = ymd(d2);
+    } else if (p === "ay") {
+      B.bas = ymd(new Date(now.getFullYear(), now.getMonth(), 1));
+      B.bit = ymd(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+    }
+    ciz();
+  }
+
+  /* --- MESAİ KAYDETME --- */
+  else if (act === "mesai-kaydet") {
+    const batch = writeBatch(db);
+    GUNLER.forEach((_, idx) => {
+      const kapali = $("#m-kapali-" + idx).checked;
+      const open = $("#m-acilis-" + idx).value;
+      const close = $("#m-kapanis-" + idx).value;
+      const obj = { closed: kapali, open, close };
+      S.saatler[idx] = obj;
+      batch.set(doc(db, "workingHours", String(idx)), obj);
+    });
+    await batch.commit();
+    await gunleriUret(120);
+    alert("Haftalık mesai saatleri kaydedildi.");
+    ciz();
+  }
+
+  /* --- MÜŞTERİ SEKMESİ --- */
+  else if (act === "m-gorunum") {
+    B.mGorunum = btn.dataset.v;
+    ciz();
+  } else if (act === "kisi-detay") {
+    const k = btn.dataset.k;
+    B.acikKisi = B.acikKisi === k ? null : k;
+    ciz();
+  }
+
+  /* --- AYARLAR --- */
+  else if (act === "dukkan-kaydet") {
+    const yeniAd = $("#a-dukkan").value.trim();
+    if (yeniAd) {
+      await setDoc(doc(db, "shop", "settings"), { name: yeniAd }, { merge: true });
+      S.dukkan = yeniAd;
+      alert("Dükkân adı güncellendi.");
+      ciz();
+    }
+  } else if (act === "hizmet-guncelle") {
+    const id = btn.dataset.id;
+    const name = $("#h-ad-" + id).value.trim();
+    const minutes = sy($("#h-sure-" + id).value, 30);
+    const price = sy($("#h-fiyat-" + id).value, 0);
+    await updateDoc(doc(db, "services", id), { name, minutes, price });
+    await acikVeriYukle();
+    alert("Hizmet güncellendi.");
+    ciz();
+  } else if (act === "hizmet-sil") {
+    const id = btn.dataset.id;
+    if (confirm("Bu hizmeti silmek istediğinize emin misiniz?")) {
+      await deleteDoc(doc(db, "services", id));
+      await acikVeriYukle();
+      ciz();
+    }
+  } else if (act === "hizmet-ekle") {
+    const name = $("#h-yeni-ad").value.trim();
+    const minutes = sy($("#h-yeni-sure").value, 30);
+    const price = sy($("#h-yeni-fiyat").value, 0);
+    if (!name) { alert("Hizmet adı yazın."); return; }
+    await addDoc(collection(db, "services"), { name, minutes, price, active: true, order: S.hizmetler.length + 1 });
+    await acikVeriYukle();
+    ciz();
+  } else if (act === "sifre-degistir") {
+    const eski = $("#s-eski").value;
+    const yeni = $("#s-yeni").value;
+    if (!eski || !yeni) { alert("Lütfen tüm alanları doldurun."); return; }
+    try {
+      const user = auth.currentUser;
+      const cred = EmailAuthProvider.credential(user.email, eski);
+      await reauthenticateWithCredential(user, cred);
+      await updatePassword(user, yeni);
+      alert("Şifreniz başarıyla değiştirildi.");
+      $("#s-eski").value = ""; $("#s-yeni").value = "";
+    } catch (e) {
+      console.error(e);
+      alert("Mevcut şifreniz hatalı veya şifre kriterlere uymuyor.");
+    }
+  }
+
+  /* --- SIFIRLAMA İŞLEMLERİ --- */
+  else if (act === "sifirla-modal") {
+    B.sifirlaMod = btn.dataset.mod;
+    B.sifirlaOnay = "";
+    ciz();
+  } else if (act === "sifirla-kapat") {
+    B.sifirlaMod = null;
+    ciz();
+  } else if (act === "sifirla-onayla") {
+    if (B.sifirlaOnay.trim().toUpperCase() !== "SIL") return;
+    
+    let q;
+    if (B.sifirlaMod === "eski") {
+      q = query(collection(db, "appointments"), where("date", "<", bugun()));
+    } else {
+      q = query(collection(db, "appointments"));
+    }
+
+    const snap = await getDocs(q);
+    const batch = writeBatch(db);
+    snap.docs.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+
+    alert(B.sifirlaMod === "eski" ? "Eski randevular temizlendi." : "Tüm randevular sıfırlandı.");
+    B.sifirlaMod = null;
+    ciz();
+  }
+});
+
+/* Input alanlarındaki veri değişimlerini dinle */
+document.addEventListener("input", (e) => {
+  if (e.target.id === "m-ara") {
+    B.ara = e.target.value;
+    ciz();
+  } else if (e.target.id === "a-bas") {
+    B.bas = e.target.value;
+    ciz();
+  } else if (e.target.id === "a-bit") {
+    B.bit = e.target.value;
+    ciz();
+  } else if (e.target.id === "i-sifirla-onay") {
+    B.sifirlaOnay = e.target.value;
+    ciz();
+  }
+});
 
 /* =========================================================
-   8) BAŞLANGIÇ
+   9) BAŞLANGIÇ UYGULAMA AKIŞI
    ========================================================= */
-if (!kurulu) { ciz(); }
-else {
-  try { await acikVeriYukle(); } catch(e){ console.error(e); }
-  S.hazir = true; ciz();
-  onAuthStateChanged(auth, async (u) => {
-    if (!u) { S.admin=false; if(randevuAbonelik){randevuAbonelik(); randevuAbonelik=null;} if(S.ekran==="berber"){S.ekran="musteri"; ciz();} return; }
-    const tok = await yetkiliMi(u);
-    if (!tok) { S.admin=false; return; }
-    S.admin=true; bosSayaciKur();
-    randevulariDinle();
-    S.ekran="berber"; ciz();
+if (kurulu) {
+  onAuthStateChanged(auth, async (user) => {
+    await acikVeriYukle();
+    await gunleriUret(120);
+
+    if (user) {
+      S.admin = true;
+      S.ekran = "berber";
+      randevulariDinle();
+    } else {
+      S.admin = false;
+      S.ekran = "musteri";
+    }
+
+    S.hazir = true;
+    ciz();
   });
+} else {
+  ciz();
 }
 </script>
 </body>
