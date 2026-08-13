@@ -113,7 +113,7 @@ h1,h2,h3,.disp{font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:.0
 
 <script type="module">
 /* =========================================================
-   1) YAPILANDIRMA — Firebase konsolundan kendi değerlerini yapıştır
+   1) YAPILANDIRMA
    ========================================================= */
 const FB = {
   apiKey:            "AIzaSyB1cx17pHui7vXDYRz_4rEzycBXW3pVZW0",
@@ -125,20 +125,14 @@ const FB = {
 };
 const RECAPTCHA_SITE_KEY = "6Le5DIQtAAAAAOtBTnmJfEqcORAMksmTMp_HSMvc";
 
-/* Bot koruması. Üç seçenek:
-   "enterprise" → reCAPTCHA Enterprise anahtarı (Google Cloud faturalandırması ister)
-   "v3"         → klasik reCAPTCHA v3 anahtarı (ücretsiz, fatura hesabı gerekmez)
-   "kapali"     → koruma yok. Site yine çalışır, veri gizliliği bozulmaz;
-                  sadece sahte randevu göndermek kolaylaşır. */
+/* Bot koruması: "v3" | "enterprise" | "kapali" */
 const RECAPTCHA_TIP = "v3";
 
-/* Berber sadece şifre yazar; e-posta burada sabit durur ve gizli bir bilgi değildir.
-   Tek başına hiçbir işe yaramaz — asıl sır olan şifre Firebase'de saklanır, bu dosyada DEĞİL.
-   Kendi gerçek e-postanı yaz: şifre unutulursa sıfırlama maili oraya gider. */
+/* Berber sadece şifre yazar; e-posta burada sabit durur ve gizli değildir. */
 const BERBER_MAIL = "handigitaltr@gmail.com";
 
-/* apiKey herkese açıktır, gizli bir bilgi değildir. Güvenliği sağlayan şey
-   Firestore kuralları, App Check ve Cloud Functions doğrulamalarıdır. */
+/* Aydınlatma metninde görünecek iletişim adresi */
+const KVKK_EPOSTA = "handigitaltr@gmail.com";
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
@@ -167,8 +161,6 @@ const tl = (n) => new Intl.NumberFormat("tr-TR").format(Math.round(n||0)) + " �
 const saatMetni = (dk) => { const h=Math.floor(dk/60), m=dk%60; return m ? `${h} sa ${m} dk` : `${h} sa`; };
 const bugun = () => ymd(new Date());
 
-/* XSS koruması: müşteri adı/telefonu ekrana basılmadan önce kaçırılır.
-   Bu olmazsa isim alanına script yazan biri berberin panelinde kod çalıştırabilir. */
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
   ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 
@@ -204,13 +196,12 @@ if (kurulu) {
   auth = getAuth(app);
 }
 
-
 /* =========================================================
    4) DURUM
    ========================================================= */
 const S = { ekran:"musteri", hizmetler:[], saatler:{}, gunler:{}, dukkan:"Berber", randevular:[], admin:false, hazir:false };
-const M = { hizmetId:null, tarih:null, saat:null, slotlar:[], slotYukleniyor:false, ad:"", soyad:"", tel:"", kvkk:false, ozet:null, gonderiliyor:false, hata:"" };
-const B = { sekme:"bugun", secili:bugun(), detay:null, ay:new Date(new Date().getFullYear(), new Date().getMonth(), 1), ekleAcik:false, mGorunum:"kisi", ara:"", acikKisi:null, bas:"", bit:"", sifirlaMod:null, sifirlaOnay:"" };
+const M = { hizmetId:null, tarih:null, saat:null, slotlar:[], slotYukleniyor:false, ad:"", soyad:"", tel:"", kvkk:false, ozet:null, gonderiliyor:false, hata:"", kvkkAcik:false };
+const B = { sekme:"bugun", secili:bugun(), detay:null, ay:new Date(new Date().getFullYear(), new Date().getMonth(), 1), ekleAcik:false, mGorunum:"kisi", ara:"", acikKisi:null, bas:"", bit:"", sifirlaMod:null };
 { const b=new Date(); B.bas=ymd(new Date(b.getFullYear(),b.getMonth(),1)); B.bit=ymd(new Date(b.getFullYear(),b.getMonth()+1,0)); }
 
 /* =========================================================
@@ -231,8 +222,6 @@ async function acikVeriYukle(){
   if (ayar) S.dukkan = ayar.data().name || "Berber";
 }
 
-/* Gün takvimini haftalık şablondan üretir. Kurallar tarih hesabı yapamadığı için
-   her tarih ayrı bir doküman olarak duruyor; kapalı gün açmak da bu sayede mümkün. */
 async function gunleriUret(adet=120){
   const b = new Date(); b.setHours(0,0,0,0);
   for (let i=0; i<adet; i+=200){
@@ -242,7 +231,6 @@ async function gunleriUret(adet=120){
       const key = ymd(d);
       const s = S.saatler[d.getDay()] || {closed:true, open:"09:00", close:"20:00"};
       const mevcut = S.gunler[key];
-      // Elle kapatılmış özel günü şablon ezmesin
       if (mevcut?.manuel) continue;
       const yeni = { date:key, closed:!!s.closed, open:s.open, close:s.close, manuel:false };
       S.gunler[key] = yeni;
@@ -252,8 +240,6 @@ async function gunleriUret(adet=120){
   }
 }
 
-/* Canlı dinleme: berber panel açıkken yeni randevu gelirse ekran kendiliğinden yenilenir.
-   Tek seferlik okuma yapsaydık berber, panel açıkken düşen randevuyu göremezdi. */
 let randevuAbonelik = null;
 function randevulariDinle(){
   const yilOnce = new Date(); yilOnce.setFullYear(yilOnce.getFullYear()-1);
@@ -261,7 +247,6 @@ function randevulariDinle(){
   if (randevuAbonelik) randevuAbonelik();
   randevuAbonelik = onSnapshot(q1, (snap) => {
     S.randevular = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    // Form doldurulurken ekranı sıfırlamamak için sadece liste sekmelerinde yeniden çiz
     if (S.ekran==="berber" && ["bugun","takvim","musteriler"].includes(B.sekme)) ciz();
   }, (e) => console.error(e));
 }
@@ -283,10 +268,44 @@ function kurulumEkrani(){
   return `<div class="wrap" style="padding-top:50px">
     <div class="kicker">Kurulum gerekli</div>
     <h1 style="font-size:24px;margin:8px 0 14px">Firebase bağlanmamış</h1>
-    <p class="note">index.html dosyasının başındaki <b>FB</b> nesnesine Firebase konsolundaki
-    web uygulaması ayarlarını, <b>RECAPTCHA_SITE_KEY</b> alanına da App Check anahtarını yapıştırın.
-    Kurulum adımları firebase-kurulum.md dosyasında.</p>
+    <p class="note">index.html dosyasının başındaki <b>FB</b> nesnesine Firebase ayarlarını yapıştırın.</p>
   </div>`;
+}
+
+/* ---------- KVKK AYDINLATMA METNİ ---------- */
+function kvkkModal(){
+  return `<div class="modal" data-act="kvkk-kapat"><div class="sheet" data-act="hicbirsey">
+    <div class="kicker">Aydınlatma metni</div>
+    <h2 style="font-size:20px;margin:8px 0 14px">Kişisel verilerin korunması</h2>
+    <div class="note" style="line-height:1.65">
+      <p style="margin-bottom:10px"><b style="color:var(--bone)">Veri sorumlusu:</b> ${esc(S.dukkan)} ·
+      İletişim: ${esc(KVKK_EPOSTA)}</p>
+
+      <p style="margin-bottom:10px"><b style="color:var(--bone)">Hangi veriler işleniyor?</b>
+      Ad soyad ve telefon numaranız. Bunlara ek olarak seçtiğiniz hizmet, tarih ve saat bilgisi kaydedilir.</p>
+
+      <p style="margin-bottom:10px"><b style="color:var(--bone)">Neden işleniyor?</b>
+      Yalnızca randevunuzun oluşturulması, onaylanması, gerektiğinde sizinle iletişime geçilmesi ve
+      dükkânın randevu geçmişini takip etmesi için. Pazarlama amacıyla kullanılmaz, üçüncü kişilerle
+      paylaşılmaz.</p>
+
+      <p style="margin-bottom:10px"><b style="color:var(--bone)">Hukuki sebep:</b>
+      KVKK m.5/2-c uyarınca sözleşmenin kurulması ve ifası, ayrıca m.5/2-f uyarınca veri sorumlusunun
+      meşru menfaati.</p>
+
+      <p style="margin-bottom:10px"><b style="color:var(--bone)">Nerede saklanıyor?</b>
+      Kayıtlar Google Firebase altyapısında tutulur. Randevu bilgileriniz diğer müşterilere görünmez;
+      ad ve telefon yalnızca dükkân sahibinin şifreli panelinde görüntülenebilir.</p>
+
+      <p style="margin-bottom:10px"><b style="color:var(--bone)">Ne kadar süre saklanıyor?</b>
+      Randevu geçmişi en fazla 12 ay saklanır, sonrasında silinir.</p>
+
+      <p style="margin-bottom:10px"><b style="color:var(--bone)">Haklarınız:</b>
+      KVKK m.11 uyarınca verilerinize erişme, düzeltilmesini veya silinmesini isteme ve işlemeye itiraz
+      etme hakkınız vardır. Talebinizi yukarıdaki e-posta adresine ya da doğrudan dükkâna iletebilirsiniz.</p>
+    </div>
+    <button class="btn" style="margin-top:14px" data-act="kvkk-kapat">Okudum, kapat</button>
+  </div></div>`;
 }
 
 /* ---------- MÜŞTERİ ---------- */
@@ -356,7 +375,9 @@ function musteriEkrani(){
       <input id="i-tel" class="inp" value="${esc(M.tel)}" inputmode="tel" placeholder="05xx xxx xx xx" autocomplete="tel">
       <label style="display:flex;gap:9px;align-items:flex-start;margin:4px 0 12px;font-size:13px;color:var(--muted);line-height:1.45">
         <input type="checkbox" id="i-kvkk" ${M.kvkk?"checked":""} style="margin-top:3px">
-        <span>Adımın ve telefon numaramın randevu takibi için saklanmasını kabul ediyorum.</span>
+        <span>Adımın ve telefon numaramın randevu takibi için saklanmasını kabul ediyorum.
+          <button data-act="kvkk-ac" style="background:none;border:none;padding:0;color:var(--brass);
+            text-decoration:underline;cursor:pointer;font:inherit">Aydınlatma metni</button></span>
       </label>
       <div class="card" style="margin-bottom:12px">
         <div class="tr"><span>${esc(h.name)}</span><b>${M.saat} – ${fromMin(toMin(M.saat)+h.minutes)}</b></div>
@@ -369,6 +390,7 @@ function musteriEkrani(){
     </section>`}
 
     <div class="footlink"><button data-act="giris-ac">Yönetici girişi</button></div>
+    ${M.kvkkAcik ? kvkkModal() : ""}
   </div>`;
 }
 
@@ -465,8 +487,8 @@ function manuelEkle(tarih){
     <h3 style="font-size:14px;margin-bottom:12px">Randevu ekle · ${trKisa(tarih)}</h3>
     <label class="lbl">Hizmet</label>
     <select class="inp" id="e-hizmet">${S.hizmetler.map(h=>`<option value="${h.id}">${esc(h.name)} (${h.minutes} dk)</option>`).join("")}</select>
-    <label class="lbl">Saat (istediğiniz dakikayı yazabilirsiniz)</label>
-    <input class="inp" id="e-saat" type="time" step="60">
+    <label class="lbl">Saat</label>
+    <input class="inp" id="e-saat" type="time" step="900">
     <label class="lbl">Ad soyad</label>
     <input class="inp" id="e-ad" placeholder="Müşteri adı">
     <label class="lbl">Telefon (kişi geçmişi için önerilir)</label>
@@ -692,12 +714,15 @@ function sifirlaPaneli(){
     ${aralikSecici()}`;
 }
 
+/* DÜZELTME: pencere içindeki alana tıklayınca pencere kapanıyordu,
+   bu yüzden onay kutusuna SIFIRLA yazılamıyordu. İç katmana kendi
+   eylemi verildi, böylece tıklama dışarı sızmıyor. */
 function sifirlaModal(){
-  return `<div class="modal" data-act="modal-kapat"><div class="sheet" data-stop>
+  return `<div class="modal" data-act="modal-kapat"><div class="sheet" data-act="hicbirsey">
     <h2 style="font-size:20px;margin-bottom:10px">Emin misiniz?</h2>
     <p class="note" style="margin-bottom:12px">${B.sifirlaMod==="aralik"?`${trKisa(B.bas)} – ${trKisa(B.bit)} arasındaki`:"Tüm"} randevular silinecek.
     Onaylamak için <b style="color:var(--brass)">SIFIRLA</b> yazın.</p>
-    <input class="inp" id="i-onay" placeholder="SIFIRLA">
+    <input class="inp" id="i-onay" placeholder="SIFIRLA" autocomplete="off">
     <div class="row"><button class="btn dngr" data-act="sifirla-uygula">Sil</button>
     <button class="btn ghost" data-act="modal-kapat">Vazgeç</button></div>
   </div></div>`;
@@ -705,7 +730,7 @@ function sifirlaModal(){
 
 function detayModal(){
   const r = S.randevular.find(x=>x.id===B.detay); if(!r) return "";
-  return `<div class="modal" data-act="modal-kapat"><div class="sheet" data-stop>
+  return `<div class="modal" data-act="modal-kapat"><div class="sheet" data-act="hicbirsey">
     <div class="kicker">Randevu detayı</div>
     <h2 style="font-size:22px;margin:8px 0 14px">${esc(r.name)}</h2>
     <div class="tr"><span>Hizmet</span><b>${esc(r.serviceName)}</b></div>
@@ -728,9 +753,6 @@ function detayModal(){
 /* =========================================================
    7) OLAYLAR
    ========================================================= */
-/* Müsaitlik, kişisel veri içermeyen "slots" kayıtlarından hesaplanır.
-   slots yalnızca tarih ve saat tutar; isim/telefon içeren appointments
-   koleksiyonu müşteri tarafına tamamen kapalıdır. */
 async function saatleriGetir(){
   M.slotYukleniyor = true; M.slotlar = []; M.hata = ""; ciz();
   try {
@@ -761,8 +783,8 @@ async function saatleriGetir(){
 
 document.addEventListener("click", async (ev) => {
   const t = ev.target.closest("[data-act]"); if(!t) return;
-  if (t.hasAttribute("data-stop")) return;
   const act = t.dataset.act;
+  if (act==="hicbirsey") return;   // pencere içindeki tıklama dışarı sızmasın
 
   /* müşteri */
   if (act==="hizmet"){ M.hizmetId=t.dataset.id; M.saat=null; M.hata=""; if(M.tarih) await saatleriGetir(); else ciz(); return; }
@@ -770,6 +792,8 @@ document.addEventListener("click", async (ev) => {
   if (act==="saat"){ M.saat=t.dataset.t; M.hata=""; ciz(); return; }
   if (act==="gonder"){ await randevuGonder(); return; }
   if (act==="ozet-kapat"){ Object.assign(M,{hizmetId:null,tarih:null,saat:null,slotlar:[],ad:"",soyad:"",tel:"",kvkk:false,ozet:null,hata:""}); ciz(); return; }
+  if (act==="kvkk-ac"){ M.kvkkAcik=true; ciz(); return; }
+  if (act==="kvkk-kapat"){ M.kvkkAcik=false; ciz(); return; }
   if (act==="giris-ac"){ S.ekran="giris"; girisHata=""; ciz(); return; }
   if (act==="giris-iptal"){ S.ekran="musteri"; ciz(); return; }
   if (act==="giris"){ await girisYap(); return; }
@@ -784,7 +808,6 @@ document.addEventListener("click", async (ev) => {
   if (act==="onayla" || act==="iptal"){
     const id=t.dataset.id, r=S.randevular.find(x=>x.id===id);
     if (act==="iptal"){
-      // Randevu iptal edilince kapattığı saatler de serbest kalmalı
       const batch=writeBatch(db);
       batch.update(doc(db,"appointments",id), { status:"cancelled" });
       if (r) for(let k=toMin(r.time); k<toMin(r.time)+r.minutes; k+=15)
@@ -828,7 +851,6 @@ document.addEventListener("click", async (ev) => {
   if (act==="sifirla-uygula"){ await sifirlaUygula(); return; }
 });
 
-/* girdileri yakala (yeniden çizmeden) */
 document.addEventListener("input", (ev) => {
   const el=ev.target;
   if (el.id==="i-ad") M.ad=el.value;
@@ -851,9 +873,6 @@ function preset(p){
   if(p==="ay"){ B.bas=ymd(new Date(b.getFullYear(),b.getMonth(),1)); B.bit=ymd(new Date(b.getFullYear(),b.getMonth()+1,0)); }
 }
 
-/* Randevu + slot kayıtları tek bir toplu yazmayla oluşturulur.
-   Slot doküman kimliği tarih_saat olduğu için, aynı saniyede aynı saate basan
-   ikinci kişinin yazması Firestore tarafından reddedilir: çift rezervasyon imkânsız. */
 async function randevuGonder(){
   M.hata="";
   const ad=`${M.ad} ${M.soyad}`.trim();
@@ -875,7 +894,7 @@ async function randevuGonder(){
       date:M.tarih, time:M.saat, minutes:h.minutes,
       serviceId:h.id, serviceName:h.name, price:h.price,
       name:ad, phone:tel, status:"pending", source:"online",
-      anonymized:false, createdAt:serverTimestamp()
+      createdAt:serverTimestamp()
     });
     bloklar.forEach(t => batch.set(doc(db,"slots",`${M.tarih}_${t.replace(":","")}`), {
       date:M.tarih, time:t, apptId
@@ -885,10 +904,15 @@ async function randevuGonder(){
              name:ad, serviceName:h.name, price:h.price };
   } catch(e){
     console.error("Randevu hatası:", e.code, e.message);
-    if (/already-exists|permission/i.test(e.code||"")) {
-      M.hata="Bu saat az önce doldu, lütfen başka bir saat seçin.";
-      M.saat=null; await saatleriGetir();
-    } else M.hata="Randevu gönderilemedi, tekrar deneyin.";
+    let dolmus=false;
+    try {
+      const kontrol = await getDocs(query(collection(db,"slots"), where("date","==",M.tarih)));
+      const set = new Set(kontrol.docs.map(d=>d.data().time));
+      dolmus = bloklar.some(x=>set.has(x));
+    } catch {}
+    if (dolmus) { M.hata="Bu saat az önce doldu, lütfen başka bir saat seçin."; M.saat=null; await saatleriGetir(); }
+    else if (/permission/i.test(e.code||"")) M.hata="Kayıt reddedildi. Güvenlik kurallarının güncel sürümü yayınlanmamış olabilir.";
+    else M.hata="Randevu gönderilemedi, tekrar deneyin.";
   }
   M.gonderiliyor=false; ciz();
 }
@@ -901,7 +925,6 @@ async function yetkiliMi(u){
 async function girisYap(){
   const sifre=$("#i-sifre")?.value||"";
   girisHata="";
-  if (BERBER_MAIL.includes("BURAYA")) { girisHata="Kodda BERBER_MAIL alanı doldurulmamış."; ciz(); return; }
   try {
     const cred = await signInWithEmailAndPassword(auth, BERBER_MAIL, sifre);
     if (!(await yetkiliMi(cred.user))){ await signOut(auth); girisHata="Şifre doğru ama bu hesabın panel yetkisi yok (admins dokümanı eksik)."; ciz(); return; }
@@ -910,30 +933,32 @@ async function girisYap(){
     const k = e.code || "";
     girisHata =
       k.includes("operation-not-allowed") ? "Firebase'de E-posta/Şifre yöntemi açık değil." :
-      k.includes("invalid-email")         ? "Koddaki BERBER_MAIL adresi geçersiz." :
-      k.includes("user-not-found")        ? "Bu adreste kayıtlı hesap yok. Authentication → Users'tan oluşturun." :
+      k.includes("user-not-found")        ? "Bu adreste kayıtlı hesap yok." :
       k.includes("too-many-requests")     ? "Çok fazla hatalı deneme. Birkaç dakika bekleyin." :
-      k.includes("network")               ? "Bağlantı kurulamadı. Sayfa localhost veya https üzerinden açılmalı." :
-      k.includes("api-key")               ? "Firebase anahtarları hatalı." :
       "Şifre hatalı. (" + k + ")";
     ciz();
   }
 }
 
 async function manuelKaydet(tarih){
-  const hid=$("#e-hizmet")?.value, saat=$("#e-saat")?.value, ad=$("#e-ad")?.value.trim()||"", tel=$("#e-tel")?.value.trim()||"";
+  const hid=$("#e-hizmet")?.value, ad=$("#e-ad")?.value.trim()||"", tel=$("#e-tel")?.value.trim()||"";
+  let saat=$("#e-saat")?.value;
   const h=S.hizmetler.find(x=>x.id===hid);
   if(!h||!saat||ad.length<2) return alert("Hizmet, saat ve ad soyad gerekli.");
+  /* DÜZELTME: saat 15 dakikalık ızgaraya oturtulmalı. Aksi halde 14:37 gibi
+     bir saatte slot kimlikleri kaymış olur ve müşteri o saati dolu göremez. */
+  saat = fromMin(Math.round(toMin(saat)/15)*15);
   const cak=S.randevular.some(r=>r.date===tarih&&aktif(r)&&toMin(r.time)<toMin(saat)+h.minutes&&toMin(saat)<toMin(r.time)+r.minutes);
   if(cak && !confirm("Bu saatte başka randevu var. Yine de eklensin mi?")) return;
   const kayit={date:tarih,time:saat,minutes:h.minutes,serviceId:h.id,serviceName:h.name,price:h.price,
-    name:ad,phone:tel,status:"confirmed",source:"walkin",anonymized:false,createdAt:serverTimestamp()};
+    name:ad,phone:tel,status:"confirmed",source:"walkin",createdAt:serverTimestamp()};
   const id = doc(collection(db,"appointments")).id;
   const batch = writeBatch(db);
   batch.set(doc(db,"appointments",id), kayit);
   for(let k=toMin(saat); k<toMin(saat)+h.minutes; k+=15)
     batch.set(doc(db,"slots",`${tarih}_${fromMin(k).replace(":","")}`), { date:tarih, time:fromMin(k), apptId:id });
-  await batch.commit();
+  try { await batch.commit(); }
+  catch(e){ console.error(e); return alert("Kaydedilemedi: " + (e.code||e.message)); }
   S.randevular.push({id,...kayit});
   B.ekleAcik=false; ciz();
 }
@@ -968,7 +993,7 @@ async function saatKaydet(){
     const s=S.saatler[g]||{closed:true,open:"09:00",close:"20:00"};
     const o=document.querySelector(`[data-wd="${g}"][data-f="open"]`)?.value||s.open;
     const c=document.querySelector(`[data-wd="${g}"][data-f="close"]`)?.value||s.close;
-    const yeni={closed:!!s.closed, open:o, close:c};
+    const yeni={closed:!!s.closed, open:String(o), close:String(c)};
     S.saatler[g]=yeni;
     batch.set(doc(db,"workingHours",String(g)), yeni);
   });
@@ -994,22 +1019,30 @@ async function sifreDegistir(){
     $("#s-eski").value=$("#s-yeni").value=$("#s-tekrar").value="";
   }catch(e){ yaz("Mevcut şifre hatalı ya da yeni şifre zayıf."); }
 }
+
+/* DÜZELTME: eskiden sadece randevular siliniyor, kapattıkları saatler
+   (slots) kalıyordu. O saatler sonsuza kadar dolu görünüyordu. */
 async function sifirlaUygula(){
   const o=($("#i-onay")?.value||"").trim().toUpperCase();
-  if(o!=="SIFIRLA"&&o!=="SİFİRLA") return;
+  if(o!=="SIFIRLA"&&o!=="SİFİRLA"){ alert("Onaylamak için kutuya SIFIRLA yazın."); return; }
   const hedef = B.sifirlaMod==="aralik" ? S.randevular.filter(r=>r.date>=B.bas&&r.date<=B.bit) : S.randevular.slice();
-  for(let i=0;i<hedef.length;i+=400){
-    const b=writeBatch(db);
-    hedef.slice(i,i+400).forEach(r=>b.delete(doc(db,"appointments",r.id)));
-    await b.commit();
-  }
+  try {
+    for(let i=0;i<hedef.length;i+=100){
+      const b=writeBatch(db);
+      hedef.slice(i,i+100).forEach(r=>{
+        b.delete(doc(db,"appointments",r.id));
+        for(let k=toMin(r.time); k<toMin(r.time)+r.minutes; k+=15)
+          b.delete(doc(db,"slots",`${r.date}_${fromMin(k).replace(":","")}`));
+      });
+      await b.commit();
+    }
+  } catch(e){ console.error(e); alert("Silme sırasında hata: " + (e.code||e.message)); return; }
   const sil=new Set(hedef.map(r=>r.id));
   S.randevular=S.randevular.filter(r=>!sil.has(r.id));
   B.sifirlaMod=null; ciz();
+  alert(hedef.length + " randevu silindi.");
 }
 
-/* Boşta oturum kapatma: dükkân tabletinde açık kalan panel,
-   müşteri verisini eline geçirmenin en kolay yoludur. 20 dk hareketsizlikte çıkış. */
 let bosZamanlayici;
 function bosSayaciKur(){
   clearTimeout(bosZamanlayici);
@@ -1029,8 +1062,7 @@ else {
   S.hazir = true; ciz();
   onAuthStateChanged(auth, async (u) => {
     if (!u) { S.admin=false; if(randevuAbonelik){randevuAbonelik(); randevuAbonelik=null;} if(S.ekran==="berber"){S.ekran="musteri"; ciz();} return; }
-    const tok = await yetkiliMi(u);
-    if (!tok) { S.admin=false; return; }
+    if (!(await yetkiliMi(u))) { S.admin=false; return; }
     S.admin=true; bosSayaciKur();
     randevulariDinle();
     S.ekran="berber"; ciz();
