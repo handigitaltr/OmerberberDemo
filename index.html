@@ -134,6 +134,12 @@ const BERBER_MAIL = "handigitaltr@gmail.com";
 /* Aydınlatma metninde görünecek iletişim adresi */
 const KVKK_EPOSTA = "handigitaltr@gmail.com";
 
+/* Randevular arası boşluk payı (dakika).
+   0 = tıraş biter bitmez bir sonraki saat açılır (şu anki tercih).
+   15 yazılırsa 09:00'daki 30 dakikalık kesim 09:30'u da kapatır, ama
+   16:00'daki randevu 15:30 ve 15:45'i de kapatmaya başlar. */
+const ARA_PAY = 0;
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
@@ -160,6 +166,16 @@ const trKisa = (s) => { const d=parseYmd(s); return `${String(d.getDate()).padSt
 const tl = (n) => new Intl.NumberFormat("tr-TR").format(Math.round(n||0)) + " ₺";
 const saatMetni = (dk) => { const h=Math.floor(dk/60), m=dk%60; return m ? `${h} sa ${m} dk` : `${h} sa`; };
 const bugun = () => ymd(new Date());
+
+/* Bir randevunun kapattigi 15 dakikalik bloklar.
+   Sure 15'in katı değilse yukarı yuvarlanır: 20 dakikalık bir hizmet
+   iki blok kapatır, yoksa taşan kısım boş görünür. */
+const bloklariBul = (bas, dakika) => {
+  const adet = Math.max(1, Math.ceil((Number(dakika||0) + ARA_PAY) / 15));
+  const out = [];
+  for (let i=0; i<adet; i++) out.push(fromMin(bas + i*15));
+  return out;
+};
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
   ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
@@ -482,6 +498,10 @@ function gunPaneli(tarih){
       Dolu görünen boş saatleri temizle</button>
     <p class="note" style="margin-top:6px">Silinmiş randevulardan kalan saat kayıtlarını siler.
     Gerçek randevusu olan saatlere dokunmaz.</p>
+    <button class="btn ghost sm" style="width:100%;margin-top:10px" data-act="slot-yenidenkur" data-tarih="${tarih}">
+      Saat kilitlerini yeniden kur</button>
+    <p class="note" style="margin-top:6px">Bu günün dolu saatlerini randevulara bakarak sıfırdan kurar.
+    Bir randevu alındığı halde saati kapanmamışsa bunu kullanın.</p>
     ${manuelEkle(tarih)}`;
 }
 
@@ -757,7 +777,9 @@ function detayModal(){
 /* =========================================================
    7) OLAYLAR
    ========================================================= */
+let slotIstek = 0;
 async function saatleriGetir(){
+  const istek = ++slotIstek;
   M.slotYukleniyor = true; M.slotlar = []; M.hata = ""; ciz();
   try {
     const h = S.hizmetler.find(x=>x.id===M.hizmetId);
@@ -765,6 +787,7 @@ async function saatleriGetir(){
     if (!h || !g || g.closed) { M.slotlar=[]; M.slotYukleniyor=false; return ciz(); }
 
     const snap = await getDocs(query(collection(db,"slots"), where("date","==",M.tarih)));
+    if (istek !== slotIstek) return;
     const dolu = new Set(snap.docs.map(d=>d.data().time));
 
     const ac=toMin(g.open), kapa=toMin(g.close);
@@ -772,7 +795,7 @@ async function saatleriGetir(){
     const liste=[];
     for(let t=ac; t+h.minutes<=kapa; t+=15){
       let bos=true;
-      for(let k=t; k<t+h.minutes; k+=15) if(dolu.has(fromMin(k))) { bos=false; break; }
+      for(const bk of bloklariBul(t, h.minutes)) if(dolu.has(bk)) { bos=false; break; }
       if (M.tarih===bg && t<=simdi) bos=false;
       liste.push({ time:fromMin(t), free:bos });
     }
@@ -782,6 +805,7 @@ async function saatleriGetir(){
     M.hata = /permission/i.test(e.code||"") ? "Güvenlik kuralları henüz güncellenmemiş görünüyor."
            : "Saatler getirilemedi, sayfayı yenileyip tekrar deneyin.";
   }
+  if (istek !== slotIstek) return;
   M.slotYukleniyor = false; ciz();
 }
 
@@ -811,16 +835,26 @@ document.addEventListener("click", async (ev) => {
   if (act==="modal-kapat"){ B.detay=null; B.sifirlaMod=null; ciz(); return; }
   if (act==="onayla" || act==="iptal"){
     const id=t.dataset.id, r=S.randevular.find(x=>x.id===id);
-    if (act==="iptal"){
+    try {
       const batch=writeBatch(db);
-      batch.update(doc(db,"appointments",id), { status:"cancelled" });
-      if (r) for(let k=toMin(r.time); k<toMin(r.time)+r.minutes; k+=15)
-        batch.delete(doc(db,"slots",`${r.date}_${fromMin(k).replace(":","")}`));
+      if (act==="iptal"){
+        batch.update(doc(db,"appointments",id), { status:"cancelled" });
+        if (r) for(const bk of bloklariBul(toMin(r.time), r.minutes))
+          batch.delete(doc(db,"slots",`${r.date}_${bk.replace(":","")}`));
+      } else {
+        batch.update(doc(db,"appointments",id), { status:"confirmed" });
+        /* İptal edilmiş bir randevu yeniden onaylanırsa saat kilitleri silinmiş
+           olur; burada geri kuruyoruz. Duruyorlarsa üzerine aynısı yazılır. */
+        if (r) for(const bk of bloklariBul(toMin(r.time), r.minutes))
+          batch.set(doc(db,"slots",`${r.date}_${bk.replace(":","")}`),
+                    { date:r.date, time:bk, apptId:id });
+      }
       await batch.commit();
-      if(r) r.status="cancelled";
-    } else {
-      await updateDoc(doc(db,"appointments",id), { status:"confirmed" });
-      if(r) r.status="confirmed";
+      if(r) r.status = act==="iptal" ? "cancelled" : "confirmed";
+    } catch(e){
+      console.error(e);
+      alert("İşlem tamamlanamadı: " + (e.code||e.message));
+      return;
     }
     B.detay=null; ciz(); return;
   }
@@ -839,6 +873,7 @@ document.addEventListener("click", async (ev) => {
     S.gunler[key]=yeni; ciz(); return;
   }
   if (act==="slot-temizle"){ await slotTemizle(t.dataset.tarih); return; }
+  if (act==="slot-yenidenkur"){ await slotlariYenidenKur(t.dataset.tarih); return; }
   if (act==="ekle-ac"){ B.ekleAcik=true; ciz(); return; }
   if (act==="ekle-kapat"){ B.ekleAcik=false; ciz(); return; }
   if (act==="ekle-kaydet"){ await manuelKaydet(t.dataset.tarih); return; }
@@ -891,7 +926,7 @@ async function randevuGonder(){
   M.gonderiliyor=true; ciz();
   const apptId = doc(collection(db,"appointments")).id;
   const bas = toMin(M.saat);
-  const bloklar = []; for(let k=bas; k<bas+h.minutes; k+=15) bloklar.push(fromMin(k));
+  const bloklar = bloklariBul(bas, h.minutes);
 
   try {
     const batch = writeBatch(db);
@@ -946,7 +981,7 @@ async function girisYap(){
 }
 
 async function manuelKaydet(tarih){
-  const hid=$("#e-hizmet")?.value, ad=$("#e-ad")?.value.trim()||"", tel=$("#e-tel")?.value.trim()||"";
+  const hid=$("#e-hizmet")?.value, ad=$("#e-ad")?.value.trim()||"", tel=($("#e-tel")?.value||"").replace(/\D/g,"");
   let saat=$("#e-saat")?.value;
   const h=S.hizmetler.find(x=>x.id===hid);
   if(!h||!saat||ad.length<2) return alert("Hizmet, saat ve ad soyad gerekli.");
@@ -960,12 +995,36 @@ async function manuelKaydet(tarih){
   const id = doc(collection(db,"appointments")).id;
   const batch = writeBatch(db);
   batch.set(doc(db,"appointments",id), kayit);
-  for(let k=toMin(saat); k<toMin(saat)+h.minutes; k+=15)
-    batch.set(doc(db,"slots",`${tarih}_${fromMin(k).replace(":","")}`), { date:tarih, time:fromMin(k), apptId:id });
+  for(const bk of bloklariBul(toMin(saat), h.minutes))
+    batch.set(doc(db,"slots",`${tarih}_${bk.replace(":","")}`), { date:tarih, time:bk, apptId:id });
   try { await batch.commit(); }
   catch(e){ console.error(e); return alert("Kaydedilemedi: " + (e.code||e.message)); }
   S.randevular.push({id,...kayit});
   B.ekleAcik=false; ciz();
+}
+
+/* Saat kilitlerini yeniden kurar: o güne ait tüm slot kayıtlarını silip
+   iptal edilmemiş randevulara bakarak baştan yazar. Randevu var ama saati
+   kapanmamışsa (eski sürümle oluşmuş kayıtlar gibi) bunu düzeltir. */
+async function slotlariYenidenKur(tarih){
+  try{
+    const eski = await getDocs(query(collection(db,"slots"), where("date","==",tarih)));
+    const b = writeBatch(db);
+    eski.docs.forEach(d => b.delete(doc(db,"slots",d.id)));
+    let say = 0;
+    S.randevular.filter(r => r.date===tarih && aktif(r)).forEach(r => {
+      for(const t of bloklariBul(toMin(r.time), r.minutes)){
+        b.set(doc(db,"slots",`${tarih}_${t.replace(":","")}`), { date:tarih, time:t, apptId:r.id });
+        say++;
+      }
+    });
+    await b.commit();
+    alert(say + " saat kilidi yeniden kuruldu.");
+    ciz();
+  }catch(e){
+    console.error(e);
+    alert("Saat kilitleri kurulamadı: " + (e.code||e.message));
+  }
 }
 
 /* Öksüz slot temizliği: randevusu kalmamış saat kayıtlarını siler.
@@ -978,7 +1037,7 @@ async function slotTemizle(tarih){
     // Gerçekten randevusu olan saatler
     const gecerli = new Set();
     S.randevular.filter(r=>r.date===tarih && aktif(r)).forEach(r=>{
-      for(let k=toMin(r.time); k<toMin(r.time)+r.minutes; k+=15) gecerli.add(fromMin(k));
+      for(const bk of bloklariBul(toMin(r.time), r.minutes)) gecerli.add(bk);
     });
 
     const oksuz = snap.docs.filter(d => !gecerli.has(d.data().time));
@@ -1069,8 +1128,8 @@ async function sifirlaUygula(){
       const b=writeBatch(db);
       hedef.slice(i,i+100).forEach(r=>{
         b.delete(doc(db,"appointments",r.id));
-        for(let k=toMin(r.time); k<toMin(r.time)+r.minutes; k+=15)
-          b.delete(doc(db,"slots",`${r.date}_${fromMin(k).replace(":","")}`));
+        for(const bk of bloklariBul(toMin(r.time), r.minutes))
+          b.delete(doc(db,"slots",`${r.date}_${bk.replace(":","")}`));
       });
       await b.commit();
     }
